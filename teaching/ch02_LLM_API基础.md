@@ -2,6 +2,8 @@
 
 > 对应 notebook：`notebooks/ch02/ch02_llm_api_basics.ipynb`
 > 核心代码：`scratch_agents/eval/gaia.py`
+>
+> **TS 示例说明**：本文每段 Python 代码后附带一段功能对应的 TypeScript 代码，方便对照阅读。库映射约定：`openai`→`openai`（npm 包）、`anthropic`→`@anthropic-ai/sdk`、`litellm`（多厂商统一层）→ [Vercel AI SDK](https://sdk.vercel.ai/)（`ai` + `@ai-sdk/openai` + `@ai-sdk/anthropic`，是 TS 生态里扮演同样"统一多厂商接口"角色的库）、`pydantic.BaseModel`→`zod`、`asyncio.gather`→`Promise.all`/`Promise.allSettled`、`asyncio.Semaphore`→`p-limit`。`scratch_agents` 是本书随 Python 代码给出的自制教学框架，没有官方 TS 移植，相关示例仅作结构对照。
 
 这一章回答一个问题：**在写任何 "Agent" 代码之前，你必须先掌握怎么和 LLM 对话。** 它由 9 个递进的知识点组成，最后用一个真实基准测试收尾。
 
@@ -23,6 +25,21 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
+```typescript
+// OpenAI
+import OpenAI from "openai";
+
+const client = new OpenAI();
+const response = await client.chat.completions.create({
+  model: "gpt-5.4-mini",
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "What is the capital of France?" },
+  ],
+});
+console.log(response.choices[0].message.content);
+```
+
 ```python
 # Anthropic
 from anthropic import Anthropic
@@ -33,6 +50,19 @@ response = client.messages.create(
     messages=[{"role": "user", "content": "What is the capital of France?"}]
 )
 print(response.content[0].text)
+```
+
+```typescript
+// Anthropic
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+const response = await client.messages.create({
+  model: "claude-sonnet-4-6",
+  max_tokens: 1024,
+  messages: [{ role: "user", content: "What is the capital of France?" }],
+});
+console.log(response.content[0].text);
 ```
 
 **要理解的核心是 `role` 的三种身份**：
@@ -52,7 +82,16 @@ response = completion(model="gpt-5.4-mini", messages=[...])       # OpenAI
 response = completion(model="claude-sonnet-4-6", messages=[...])  # Anthropic
 ```
 
-LiteLLM 把所有厂商适配成 **OpenAI 格式**，换模型只需换字符串。这是一个重要的工程决策：本书整个框架的 LLM 层（`scratch_agents/llm.py` 里的 `LlmClient`）就构建在 `litellm.acompletion` 之上，所以第 4 章写好的 Agent 天然支持任何模型。
+```typescript
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
+
+let response = await generateText({ model: openai("gpt-5.4-mini"), messages: [/* ... */] });       // OpenAI
+response = await generateText({ model: anthropic("claude-sonnet-4-6"), messages: [/* ... */] });    // Anthropic
+```
+
+LiteLLM 把所有厂商适配成 **OpenAI 格式**，换模型只需换字符串。这是一个重要的工程决策：本书整个框架的 LLM 层（`scratch_agents/llm.py` 里的 `LlmClient`）就构建在 `litellm.acompletion` 之上，所以第 4 章写好的 Agent 天然支持任何模型。（Vercel AI SDK 在 TS 生态里扮演同样角色：把厂商差异封装进 `model` 对象，`generateText` 的调用方式不随厂商变化。）
 
 ## 3. 全章最重要的概念：API 是无状态的（Listing 2.5）
 
@@ -63,6 +102,15 @@ completion(model=..., messages=[{"role": "user", "content": "My name is Jungjun.
 # 第二次调用
 completion(model=..., messages=[{"role": "user", "content": "What is my name?"}])
 # → 模型答不出来！
+```
+
+```typescript
+// 第一次调用
+await generateText({ model, messages: [{ role: "user", content: "My name is Jungjun." }] });
+
+// 第二次调用
+await generateText({ model, messages: [{ role: "user", content: "What is my name?" }] });
+// → 模型答不出来！
 ```
 
 **LLM API 没有记忆。** 每次调用都是全新的，服务器不保存你上一轮说了什么。第二次调用时模型完全不知道你叫 Jungjun。
@@ -81,6 +129,19 @@ messages.append({"role": "assistant", "content": response1.choices[0].message.co
 messages.append({"role": "user", "content": "What is my name?"})
 response2 = completion(model="gpt-5.4-mini", messages=messages)
 # → "Your name is Jungjun." ✓
+```
+
+```typescript
+type Message = { role: "user" | "assistant" | "system"; content: string };
+const messages: Message[] = [];
+
+messages.push({ role: "user", content: "My name is Jungjun." });
+const response1 = await generateText({ model: openai("gpt-5.4-mini"), messages });
+messages.push({ role: "assistant", content: response1.text });
+
+messages.push({ role: "user", content: "What is my name?" });
+const response2 = await generateText({ model: openai("gpt-5.4-mini"), messages });
+// → "Your name is Jungjun." ✓
 ```
 
 模式就是：**每轮把用户输入和模型回复都 append 进列表，下次把整个列表重新发过去。** 所谓"模型记住了你"，本质是你每次都把全部历史重新喂给它。
@@ -107,7 +168,24 @@ response = completion(
 )
 ```
 
-传入一个 Pydantic 模型作为 `response_format`，模型就被约束输出符合该 schema 的 JSON。**这是把 LLM 从"聊天机器人"变成"软件组件"的关键**——程序无法可靠地解析自由文本，但能可靠地解析 `ExtractedInfo`。第 4 章 Agent 的 `output_type` 参数、第 6 章的记忆抽取（`TaskMemory`），都靠这一招。
+```typescript
+import { z } from "zod";
+import { generateObject } from "ai";
+
+const ExtractedInfo = z.object({
+  name: z.string(),
+  email: z.string(),
+  phone: z.string().nullable().optional(),
+});
+
+const { object: response } = await generateObject({
+  model: openai("gpt-5.4-mini"),
+  messages: [{ role: "user", content: "My name is John Smith, my email is john@example.com..." }],
+  schema: ExtractedInfo,   // ← 关键
+});
+```
+
+传入一个 Pydantic 模型作为 `response_format`，模型就被约束输出符合该 schema 的 JSON。**这是把 LLM 从"聊天机器人"变成"软件组件"的关键**——程序无法可靠地解析自由文本，但能可靠地解析 `ExtractedInfo`。第 4 章 Agent 的 `output_type` 参数、第 6 章的记忆抽取（`TaskMemory`），都靠这一招。（TS 里 `zod` 扮演 `pydantic` 的角色：既是运行时校验器，也是给 LLM 的 schema 来源。）
 
 ## 6. 异步并发调用（Listing 2.8）
 
@@ -121,6 +199,19 @@ async def get_response(prompt: str) -> str:
 
 tasks = [get_response(p) for p in prompts]
 results = await asyncio.gather(*tasks)   # 三个请求同时飞出去
+```
+
+```typescript
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai"; // JS 的 await 天生异步，不需要像 acompletion 那样用前缀区分同步/异步版本
+
+async function getResponse(prompt: string): Promise<string> {
+  const response = await generateText({ model: openai("gpt-5.4-mini"), messages: [{ role: "user", content: prompt }] });
+  return response.text;
+}
+
+const tasks = prompts.map(getResponse);
+const results = await Promise.all(tasks);   // 三个请求同时飞出去
 ```
 
 LLM 调用的瓶颈是**网络等待**而不是本地计算，所以适合异步：三个请求并发，总耗时约等于最慢的那一个，而不是三者之和。这也是为什么整个框架的 `Agent.run()`、工具执行全部是 `async` 的。
@@ -144,7 +235,26 @@ async def call_llm(prompt: str) -> str:
 results = await asyncio.gather(*tasks, return_exceptions=True)  # 单个失败不炸全局
 ```
 
-三个生产级细节：`Semaphore` 控并发、`num_retries` 抗瞬时故障、`return_exceptions=True` 让一个失败不中断其余 99 个。
+```typescript
+import pLimit from "p-limit"; // JS 标准库没有 Semaphore，用 p-limit 实现相同的并发上限
+
+const limit = pLimit(10);   // 最多 10 个请求同时在飞
+
+async function callLlm(prompt: string): Promise<string> {
+  return limit(async () => {          // 第 11 个请求会排队等
+    const response = await generateText({
+      model,
+      messages: [/* ... */],
+      maxRetries: 3,                  // 失败时指数退避自动重试
+    });
+    return response.text;
+  });
+}
+
+const results = await Promise.allSettled(tasks);  // 单个失败不炸全局
+```
+
+三个生产级细节：`Semaphore` 控并发、`num_retries` 抗瞬时故障、`return_exceptions=True` 让一个失败不中断其余 99 个。（TS 里对应 `p-limit` 控并发、AI SDK 的 `maxRetries` 抗瞬时故障、`Promise.allSettled` 让单个失败不影响其余结果。）
 
 ## 8. 实战收尾：GAIA 基准测试（Listing 2.10–2.17）
 
@@ -157,6 +267,19 @@ level1_problems = load_dataset("gaia-benchmark/GAIA", "2023_level1", split="vali
 from scratch_agents.eval.gaia import run_experiment
 MODELS = ["gpt-5.5", "gpt-5.4-mini", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
 results = await run_experiment(level1_problems.select(range(20)), MODELS)
+```
+
+```typescript
+// HuggingFace 官方 JS 生态没有 `datasets` 库的直接对应，这里用 Datasets Server REST API 代替
+const res = await fetch(
+  "https://datasets-server.huggingface.co/rows?dataset=gaia-benchmark/GAIA&config=2023_level1&split=validation&offset=0&length=20"
+);
+const level1Problems = (await res.json()).rows;
+
+// scratch_agents 是本书的自制 Python 教学框架，无官方 TS 版本；这里假设已按同样接口移植
+import { runExperiment } from "./scratchAgents/eval/gaia";
+const MODELS = ["gpt-5.5", "gpt-5.4-mini", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"];
+const results = await runExperiment(level1Problems, MODELS);
 ```
 
 实现在 `scratch_agents/eval/gaia.py`，里面能看到本章每个知识点的落地：

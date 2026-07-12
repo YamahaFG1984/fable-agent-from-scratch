@@ -3,6 +3,8 @@
 > 对应 notebook：`notebooks/ch05/ch05_rag_and_file_tools.ipynb`（Listing 5.1–5.31）
 > 核心代码：`scratch_agents/rag.py`、`callbacks.py`、`tools/file_tools.py`
 > 章节快照：`notebooks/ch05/agent.py`
+>
+> **TS 示例说明**：本文每段 Python 代码后附带一段功能对应的 TypeScript 代码，方便对照阅读。库映射约定：`client.embeddings.create`→`openai`（npm 包）的同名方法；`sklearn.metrics.pairwise.cosine_similarity` 在 TS/JS 生态没有直接平替，**手写 `cosineSimilarity(a, b)` 点积/模长函数**代替；`tiktoken` 精确计量 token → `js-tiktoken`（`encodingForModel`）；`pandas`（CSV/Excel → markdown 表格）在 TS 里没有一行到位的方法，CSV 用 `papaparse` 解析、Excel 用 `xlsx`（SheetJS）读取，再**手写循环拼出 markdown 表格字符串**；PyMuPDF 文本抽取 → `pdfjs-dist`，页面渲染成图像在 Node 环境较复杂，只用注释说明思路；图像/音频转 base64 用 Node 内置 `fs.readFileSync(...).toString("base64")`；回调机制（`before_tool_callbacks`/`after_tool_callbacks`）是本书自制框架 `scratch_agents` 的概念，没有官方 TS 移植，`ToolCall`/`ToolResult` 等类型沿用第 4 章教学笔记里建立的 TS interface 风格（`toolCallId`/`name`/`status`/`content` 同名对照）。
 
 第 4 章的 Agent 能搜网页、能算数，但面对两类数据仍然瞎：**模型没见过的私有数据**（你的文件、内部文档）和**塞不进上下文的海量数据**（一次搜索返回几十万 token）。本章给出两把钥匙：**向量检索（RAG）** 和 **结构化探索（文件工具）**，最后用**回调机制**把它们优雅地挂进 Agent。
 
@@ -20,6 +22,20 @@ def get_embeddings(texts, model="text-embedding-3-small"):
         texts = [texts]
     response = client.embeddings.create(input=texts, model=model)
     return np.array([item.embedding for item in response.data])
+```
+
+```typescript
+async function getEmbeddings(
+  texts: string | string[],
+  model = "text-embedding-3-small"
+): Promise<number[][]> {
+  if (typeof texts === "string") {
+    texts = [texts];
+  }
+  const response = await client.embeddings.create({ input: texts, model });
+  // TS 没有 numpy，这里直接返回 number[][]（二维数组）即可，后续向量运算手写实现
+  return response.data.map((item) => item.embedding);
+}
 ```
 
 语义相近 → 向量夹角小。经典演示：
@@ -41,6 +57,24 @@ def fixed_length_chunking(text, chunk_size=500, overlap=50):
         start = end - overlap if end < len(text) else end   # 相邻块重叠 50 字符
 ```
 
+```typescript
+function fixedLengthChunking(text: string, chunkSize = 500, overlap = 50): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+
+  while (start < text.length) {
+    const end = start + chunkSize;
+    const chunk = text.slice(start, end).trim();
+    if (chunk) {
+      chunks.push(chunk);
+    }
+    start = end < text.length ? end - overlap : end;   // 相邻块重叠 50 字符
+  }
+
+  return chunks;
+}
+```
+
 为什么切块？embedding 对整篇长文只能给一个"平均语义"，检索粒度太粗。为什么 **overlap**？防止一句话正好被切断在边界上，两个块各拿半句都检索不到。fixed-length 是最笨但最稳的策略（还有按句/按段/语义切分等进阶方案）。
 
 ### ③ Vector Search：top-k 检索（Listing 5.5–5.6）
@@ -51,6 +85,39 @@ def vector_search(query, chunks, chunk_embeddings, top_k=3):
     similarities = cosine_similarity(query_embedding, chunk_embeddings)[0]
     top_indices = similarities.argsort()[::-1][:top_k]   # 相似度降序取前 k
     return [{'chunk': chunks[i], 'similarity': similarities[i]} for i in top_indices]
+```
+
+```typescript
+// TS/JS 生态没有 sklearn.metrics.pairwise.cosine_similarity 的直接平替，手写点积/模长实现
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+async function vectorSearch(
+  query: string,
+  chunks: string[],
+  chunkEmbeddings: number[][],
+  topK = 3
+): Promise<{ chunk: string; similarity: number }[]> {
+  const [queryEmbedding] = await getEmbeddings(query);
+  const similarities = chunkEmbeddings.map((emb) => cosineSimilarity(queryEmbedding, emb));
+
+  const topIndices = similarities
+    .map((sim, i) => [sim, i] as const)
+    .sort((a, b) => b[0] - a[0])          // 相似度降序取前 k
+    .slice(0, topK)
+    .map(([, i]) => i);
+
+  return topIndices.map((i) => ({ chunk: chunks[i], similarity: similarities[i] }));
+}
 ```
 
 测试很有说服力：查询 "Artificial Intelligence" 在 4 个文档里排出 machine learning / deep learning 在前、"Cats are popular pets" 垫底 —— 查询词一个都没出现在文档里，纯靠语义。
@@ -91,6 +158,44 @@ elif ext == '.csv':          return _read_csv(...)          # pandas → markdow
 elif ext in SPREADSHEET_EXTENSIONS: return _read_excel(...) # 同上
 ```
 
+```typescript
+if (TEXT_EXTENSIONS.includes(ext)) {
+  return readTextFile(filePath, startLine, endLine);   // 带行号，支持行范围
+} else if (ext === ".csv") {
+  return readCsv(filePath);       // 手写实现 → markdown 表格，见下
+} else if (SPREADSHEET_EXTENSIONS.includes(ext)) {
+  return readExcel(filePath);     // 同上
+}
+
+// pandas 的 df.to_markdown() 在 TS 里没有一行到位的等价物，
+// 这里用 papaparse / xlsx 解析数据后手写循环拼出 markdown 表格字符串
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
+import { readFileSync } from "node:fs";
+
+function rowsToMarkdown(header: string[], rows: string[][]): string {
+  const headerLine = `| ${header.join(" | ")} |`;
+  const sepLine = `| ${header.map(() => "---").join(" | ")} |`;
+  const bodyLines = rows.map((r) => `| ${r.join(" | ")} |`);
+  return [headerLine, sepLine, ...bodyLines].join("\n");
+}
+
+function readCsv(filePath: string): string {
+  const content = readFileSync(filePath, "utf-8");
+  const { data } = Papa.parse<string[]>(content, { skipEmptyLines: true });
+  const [header, ...rows] = data;
+  return rowsToMarkdown(header, rows);
+}
+
+function readExcel(filePath: string): string {
+  const workbook = XLSX.readFile(filePath);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
+  const [header, ...rows] = data as string[][];
+  return rowsToMarkdown(header, rows);
+}
+```
+
 两个细节：文本带**行号**（`{i:4d} | line`，模型可以说"第 42 行有问题"）；表格转 **markdown**（LLM 对 markdown 表的理解远好于原始 CSV 逗号流）。
 
 **`read_media_file`**（Listing 5.20）：图像/音频/PDF 的统一入口 —— **工具内部再调一次多模态 LLM**：
@@ -109,6 +214,12 @@ agent = Agent(model=LlmClient(model="gpt-5.5"), tools=tools, max_steps=20)
 prompt = f"{problem['Question']}\n\nThe attached file is located at: {file_path}"
 ```
 
+```typescript
+const tools = [searchWeb, tool(unzipFile), tool(listFiles), tool(readFile), tool(readMediaFile)];
+const agent = new Agent({ model: new LlmClient({ model: "gpt-5.5" }), tools, maxSteps: 20 });
+const prompt = `${problem.Question}\n\nThe attached file is located at: ${filePath}`;
+```
+
 注意两点：`max_steps` 提到 20（探索类任务步数多）；文件路径由**代码注入提示词**，不让模型猜（又是第 3 章的准则）。Agent 自主完成 unzip → list → read → 综合作答的全链条，没有任何硬编码流程。
 
 ## 5. 回调机制：不改内核的扩展点（5.5，Listing 5.24–5.31）⭐
@@ -117,6 +228,10 @@ prompt = f"{problem['Question']}\n\nThe attached file is located at: {file_path}
 
 ```python
 Agent(..., before_tool_callbacks=[...], after_tool_callbacks=[...])
+```
+
+```typescript
+new Agent({ /* ... */, beforeToolCallbacks: [/* ... */], afterToolCallbacks: [/* ... */] });
 ```
 
 `act()` 重构成三段（Listing 5.25）：
@@ -145,6 +260,28 @@ def approval_callback(context, tool_call):
     return f"User denied execution of {tool_call.name}"  # 拒绝 → 这句话成为工具结果
 ```
 
+```typescript
+const DANGEROUS_TOOLS = ["delete_file", "send_email", "execute_sql"];
+
+async function approvalCallback(
+  context: ExecutionContext,
+  toolCall: ToolCall
+): Promise<string | null> {
+  if (!DANGEROUS_TOOLS.includes(toolCall.name)) {
+    return null;                                     // 安全工具直接放行
+  }
+  // Node 没有 Python input() 那样的同步阻塞读取，用 readline/promises 做等价的异步提示
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const response = await rl.question("Do you want to execute? (y/n): ");
+  rl.close();
+
+  if (response === "y") {
+    return null;                                     // 批准 → 放行
+  }
+  return `User denied execution of ${toolCall.name}`; // 拒绝 → 这句话成为工具结果
+}
+```
+
 精妙处在拒绝分支：**拒绝信息作为工具结果进入历史**，模型看到"用户拒绝了"，会礼貌地换方案而不是崩溃。局限也很明显：`input()` 是同步阻塞的，Web 服务里不可用 —— 第 6 章会用"暂停-恢复"机制（`pending_confirmation`）彻底重做这个功能。
 
 ### 应用二：搜索压缩（after，Listing 5.29–5.31）
@@ -159,6 +296,28 @@ def search_compressor(context, tool_result):
     chunks = fixed_length_chunking(original_content, 500, 50)
     results = vector_search(query, chunks, get_embeddings(chunks), top_k=3)
     return ToolResult(..., content=["\n\n".join(r['chunk'] for r in results)])
+```
+
+```typescript
+async function searchCompressor(
+  context: ExecutionContext,
+  toolResult: ToolResult
+): Promise<ToolResult | null> {
+  if (toolResult.name !== "search_web") return null;
+  const originalContent = toolResult.content[0] as string;
+  if (originalContent.length < 2000) return null;              // 短结果不折腾
+
+  const query = extractSearchQuery(context, toolResult.toolCallId);  // 从历史反查原始查询
+  if (!query) return null;
+
+  const chunks = fixedLengthChunking(originalContent, 500, 50);
+  const results = await vectorSearch(query, chunks, await getEmbeddings(chunks), 3);
+
+  return {
+    ...toolResult,
+    content: [results.map((r) => r.chunk).join("\n\n")],
+  };
+}
 ```
 
 细节 `_extract_search_query`（Listing 5.30）：压缩需要知道"用户搜了什么"才能算相关性，答案在 `context.events` 里 —— 用 `tool_call_id` 反查对应的 ToolCall 拿到 query 参数。**这就是第 4 章把一切都记进 events 的回报：任何组件都能回溯完整历史。**

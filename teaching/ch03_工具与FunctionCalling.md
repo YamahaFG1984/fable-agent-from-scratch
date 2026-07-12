@@ -2,6 +2,8 @@
 
 > 对应 notebook：`notebooks/ch03/ch03_tools_and_function_calling.ipynb`（Listing 3.1–3.26）
 > 核心代码：`scratch_agents/tools/helpers.py`、`tools/calculator.py`、`tools/search.py`、`tools/mcp.py`
+>
+> **TS 示例说明**：本文每段 Python 代码后附带一段功能对应的 TypeScript 代码，方便对照阅读。库映射约定：OpenAI SDK → `openai`（npm 包）——本章大量演示 `tool_calls`/`tool_call_id`/`arguments` 这类底层协议细节，故 TS 示例沿用 `openai` 包的原始 `chat.completions.create` 接口，而非 Vercel AI SDK 的高层封装；`litellm.completion` 若出现在"统一多厂商"语境下则对应 [Vercel AI SDK](https://sdk.vercel.ai/) 的 `generateText`；`pydantic.BaseModel` → `zod`。Python 的 `inspect` 运行时反射（第 5 节）在 TS 里没有对应物——JS 没有运行时类型反射，相关示例改为手写 zod schema 配合函数表达同样的意图。MCP 客户端（第 7 节）用官方 `@modelcontextprotocol/sdk`（TS 是 MCP 的第一方语言之一）；MCP 服务端用 `fastmcp` npm 包，用注册调用代替 Python 的装饰器。`scratch_agents` 是本书随 Python 代码给出的自制教学框架，没有官方 TS 移植，相关示例仅作结构对照。
 
 上一章的结论是：裸 LLM 只有"脑"没有"手"。本章就是给它装手 —— 但第一个要建立的观念恰恰是：**手不是模型的，是你的。**
 
@@ -41,6 +43,25 @@ calculator_tool_definition = {
 }
 ```
 
+```typescript
+const calculatorToolDefinition = {
+  type: "function",
+  function: {
+    name: "calculator",
+    description: "Perform basic arithmetic operations.", // 模型靠这句话决定何时用它
+    parameters: {
+      type: "object",
+      properties: {
+        operator: { type: "string", enum: ["add", "subtract", "multiply", "divide"] },
+        firstNumber: { type: "number" },
+        secondNumber: { type: "number" },
+      },
+      required: ["operator", "firstNumber", "secondNumber"],
+    },
+  },
+};
+```
+
 **给 Python 跑的一半 —— 普通函数：** `def calculator(operator, first_number, second_number): ...`
 
 两者靠 `name` 关联。模型看到的只有 schema，永远碰不到代码。
@@ -60,6 +81,13 @@ for tool_call in ai_message.tool_calls:
     result = calculator(**function_args)
 ```
 
+```typescript
+for (const toolCall of aiMessage.tool_calls) {
+  const functionArgs = JSON.parse(toolCall.function.arguments); // arguments 是 JSON 字符串！
+  const result = calculator(functionArgs); // TS 没有 **kwargs 展开，calculator 改用单个参数对象接收
+}
+```
+
 `arguments` 是模型生成的**文本**，可能畸形，生产代码要处理解析失败。
 
 ## 2. 完整闭环：把结果喂回去（Listing 3.5）
@@ -76,6 +104,23 @@ result = calculator(**function_args)
 messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": str(result)})
 
 final_response = completion(model="gpt-5.4-mini", messages=messages)
+```
+
+```typescript
+let messages: any[] = [{ role: "user", content: "What is 1234 x 5678?" }];
+
+// A. 追加 assistant 的工具调用消息（原样保留 tool_calls）
+messages.push({
+  role: "assistant",
+  content: aiMessage.content,
+  tool_calls: aiMessage.tool_calls,
+});
+// B. 执行工具
+const result = calculator(functionArgs);
+// C. 用 role="tool" 追加结果，tool_call_id 负责配对
+messages.push({ role: "tool", tool_call_id: toolCall.id, content: String(result) });
+
+const finalResponse = await client.chat.completions.create({ model: "gpt-5.4-mini", messages });
 ```
 
 两条规则：
@@ -114,6 +159,24 @@ def search_web(query: str, max_results: int = 5,
         return f"Error: Search failed - {e}"   # ← 关键！
 ```
 
+```typescript
+// v3 最终版（= 框架 tools/search.ts）
+async function searchWeb(
+  query: string,
+  maxResults: number = 5,
+  topic: string = "general",
+  timeRange?: string
+): Promise<unknown[] | string> {
+  // Search the web for the given query.
+  try {
+    const response = await tavilyClient.search(query, { maxResults, topic, timeRange });
+    return response.results;
+  } catch (e) {
+    return `Error: Search failed - ${e}`; // ← 关键！
+  }
+}
+```
+
 - v1→v2：加可选参数，让模型能表达"搜最近一周的新闻"。
 - v2→v3：**错误不抛异常而是返回字符串** —— 异常炸循环，错误文本进历史，模型看到后能自我调整重试。失败信息也是喂给模型的信息。
 
@@ -132,6 +195,25 @@ def function_to_input_schema(func) -> dict:
 def function_to_tool_definition(func) -> dict:
     return format_tool_definition(func.__name__, func.__doc__ or "",
                                   function_to_input_schema(func))
+```
+
+```typescript
+import { z } from "zod";
+
+// TS 无法像 Python 那样用 inspect 内省类型注解和默认值来生成 schema（JS 没有运行时类型反射），
+// 只能显式手写 zod schema（或用 zod-to-json-schema 之类的库从 zod 生成 JSON Schema）
+const searchWebSchema = z.object({
+  query: z.string(), // 无默认值 → 必填
+  maxResults: z.number().int().default(5).optional(), // 有默认值 → 非必填
+});
+
+function functionToToolDefinition(fn: { name: string; description: string }) {
+  return {
+    name: fn.name, // 对应函数名
+    description: fn.description, // 对应 docstring
+    parameters: searchWebSchema, // 对应类型注解 + 默认值推导出的 required
+  };
+}
 ```
 
 映射关系：**函数名→name，docstring→description，类型注解→参数类型，默认值有无→required**。"把注解和 docstring 写好"从代码规范变成了直接影响模型行为的提示词。这段代码原封不动进了 `scratch_agents/tools/helpers.py`，第 4 章 `@tool` 装饰器是它的封装。
@@ -159,6 +241,37 @@ def simple_agent_loop(system_prompt, question):
             # 不 return —— 回到循环顶部，让模型看到结果继续决策
         else:
             return assistant_message.content      # 没有工具调用 = 最终答案
+```
+
+```typescript
+async function simpleAgentLoop(systemPrompt: string, question: string): Promise<string | null> {
+  const tools = [searchWeb];
+  const toolBox = Object.fromEntries(tools.map((t) => [t.name, t]));
+  const toolDefinitions = tools.map((t) => functionToToolDefinition(t));
+  const messages: any[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: question },
+  ];
+
+  while (true) {
+    const response = await client.chat.completions.create({
+      model: "gpt-5.4-mini",
+      messages,
+      tools: toolDefinitions,
+    });
+    const assistantMessage = response.choices[0].message;
+    if (assistantMessage.tool_calls) {
+      messages.push(assistantMessage);
+      for (const toolCall of assistantMessage.tool_calls) {
+        const toolResult = await toolExecution(toolBox, toolCall);
+        messages.push({ role: "tool", content: String(toolResult), tool_call_id: toolCall.id });
+      }
+      // 不 return —— 回到循环顶部，让模型看到结果继续决策
+    } else {
+      return assistantMessage.content; // 没有工具调用 = 最终答案
+    }
+  }
+}
 ```
 
 与第 4 章 Agent 类的对应：
@@ -189,6 +302,22 @@ async with stdio_client(server_params) as (read, write):
         result = await session.call_tool("tavily-search", arguments={"query": "..."})
 ```
 
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const transport = new StdioClientTransport({
+  command: "npx",
+  args: ["-y", "tavily-mcp@latest"],
+  env: { TAVILY_API_KEY: "..." },
+});
+const client = new Client({ name: "my-agent", version: "1.0.0" });
+
+await client.connect(transport);
+const tools = await client.listTools();
+const result = await client.callTool({ name: "tavily-search", arguments: { query: "..." } });
+```
+
 MCP 工具定义与 OpenAI 格式几乎同构（`inputSchema` → `parameters`），一个映射函数就能接进现有循环（框架 `tools/mcp.py`）。
 
 **用 FastMCP 写服务器只要一个装饰器：**
@@ -202,6 +331,27 @@ def search_web(query: str, max_results: int = 5) -> str:
     ...
 
 mcp.run(transport="stdio")
+```
+
+```typescript
+import { FastMCP } from "fastmcp";
+import { z } from "zod";
+
+const mcp = new FastMCP({ name: "custom-tavily-search", version: "1.0.0" });
+
+mcp.addTool({ // TS 没有 Python 装饰器那种"包函数"机制，改用注册调用；schema 需显式用 zod 声明（同第 5 节）
+  name: "search_web",
+  description: "Search the web using Tavily API. ...",
+  parameters: z.object({
+    query: z.string(),
+    maxResults: z.number().default(5),
+  }),
+  execute: async ({ query, maxResults }) => {
+    // ...
+  },
+});
+
+mcp.start({ transportType: "stdio" });
 ```
 
 FastMCP 做的事和你手写的 `function_to_tool_definition` 一模一样 —— **标准协议只是把你已理解的机制固定下来。**
