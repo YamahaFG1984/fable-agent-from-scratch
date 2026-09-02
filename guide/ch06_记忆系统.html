@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第06章 · 记忆系统 — 从零构建 AI Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1ef;
+    --surface:#ffffff;
+    --surface-2:#e6e9e5;
+    --ink:#1a2233;
+    --ink-dim:#4b5566;
+    --line:#d5d9d2;
+    --accent:#b5551f;
+    --accent-ink:#7a3a12;
+    --accent-soft:#f3e3d6;
+    --accent2:#276b64;
+    --accent2-soft:#dcece9;
+    --code-bg:#1a2233;
+    --code-ink:#e7ecef;
+    --code-accent:#e8935a;
+    --good:#2f7a4f;
+    --good-soft:#dcefe1;
+    --warn:#a5730b;
+    --warn-soft:#f6ecd6;
+    --bad:#a5341f;
+    --bad-soft:#f6ddd6;
+    --shadow: 0 1px 2px rgba(20,26,20,.06), 0 8px 24px -12px rgba(20,26,20,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171e28;
+      --surface-2:#1d2530;
+      --ink:#e7ecf1;
+      --ink-dim:#a7b1c0;
+      --line:#2a323d;
+      --accent:#e8935a;
+      --accent-ink:#f4b384;
+      --accent-soft:#3a2a1e;
+      --accent2:#5fc1b6;
+      --accent2-soft:#173330;
+      --code-bg:#0c1016;
+      --code-ink:#e7ecf1;
+      --code-accent:#e8935a;
+      --good:#5fd08a;
+      --good-soft:#123423;
+      --warn:#e0b34f;
+      --warn-soft:#3a2e12;
+      --bad:#e88a76;
+      --bad-soft:#3a1d16;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171e28;
+    --surface-2:#1d2530;
+    --ink:#e7ecf1;
+    --ink-dim:#a7b1c0;
+    --line:#2a323d;
+    --accent:#e8935a;
+    --accent-ink:#f4b384;
+    --accent-soft:#3a2a1e;
+    --accent2:#5fc1b6;
+    --accent2-soft:#173330;
+    --code-bg:#0c1016;
+    --code-ink:#e7ecf1;
+    --code-accent:#e8935a;
+    --good:#5fd08a;
+    --good-soft:#123423;
+    --warn:#e0b34f;
+    --warn-soft:#3a2e12;
+    --bad:#e88a76;
+    --bad-soft:#3a1d16;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", "Noto Sans SC", system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.7;
+  }
+  h1,h2,h3,h4{
+    font-family:"Source Serif 4","Noto Serif SC",Georgia,serif;
+    color:var(--ink);
+    text-wrap:balance;
+    margin:0;
+  }
+  code, pre, .mono, .eyebrow, .tag, .kbd{
+    font-family:"IBM Plex Mono","Noto Sans SC",monospace;
+  }
+  a{color:var(--accent-ink);}
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 272px minmax(0,1fr);
+    min-height:100vh;
+  }
+  .sidebar{
+    position:sticky; top:0; align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+    background:var(--surface);
+    padding:22px 18px 40px;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:4px;
+    padding-bottom:16px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .kicker{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+  .brand h1{ font-size:21px; line-height:1.25; }
+  .brand .sub{ font-size:12.5px; color:var(--ink-dim); }
+
+  nav.toc{ display:flex; flex-direction:column; gap:2px; }
+  nav.toc a{
+    display:flex; align-items:baseline; gap:9px;
+    padding:7px 9px; border-radius:7px;
+    text-decoration:none; color:var(--ink-dim);
+    font-size:13.5px;
+    border-left:2px solid transparent;
+  }
+  nav.toc a .num{
+    font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--ink-dim); min-width:20px;
+  }
+  nav.toc a:hover{ background:var(--surface-2); color:var(--ink); }
+  nav.toc a.active{
+    background:var(--accent-soft); color:var(--accent-ink);
+    border-left-color:var(--accent); font-weight:600;
+  }
+  nav.toc .group-label{
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-dim); opacity:.75;
+    margin:14px 9px 4px; font-weight:600;
+  }
+  nav.toc .group-label:first-child{ margin-top:2px; }
+
+  .menu-btn{
+    display:none; position:fixed; z-index:40; top:14px; left:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    width:40px; height:40px; align-items:center; justify-content:center;
+    box-shadow:var(--shadow); color:var(--ink);
+  }
+
+  main{ min-width:0; }
+  .content{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 28px 120px;
+  }
+
+  /* ---------- hero / cover ---------- */
+  .hero{
+    padding-bottom:38px; margin-bottom:44px;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .kicker{
+    font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .hero h1{ font-size:40px; line-height:1.15; margin-bottom:14px; }
+  .hero .dek{ font-size:17px; color:var(--ink-dim); max-width:60ch; }
+  .hero .meta{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin-top:22px; font-size:13px; color:var(--ink-dim);
+  }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- chapter chrome ---------- */
+  section.chapter{
+    padding-top:64px; margin-top:-8px;
+    scroll-margin-top:20px;
+  }
+  section.chapter:first-of-type{ padding-top:0; }
+  .ch-eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .ch-eyebrow .line{ height:1px; flex:1; background:var(--line); }
+  section.chapter h2{ font-size:29px; line-height:1.25; margin-bottom:8px; }
+  section.chapter .dek{ color:var(--ink-dim); font-size:15.5px; max-width:64ch; margin-bottom:28px; }
+
+  h3.subhead{
+    font-size:18px; margin:34px 0 12px;
+    padding-top:4px;
+  }
+  h3.subhead .n{ color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:14px; margin-right:8px; }
+
+  p{ margin:0 0 14px; max-width:66ch; }
+  ul.plain, ol.plain{ margin:0 0 16px; padding-left:1.3em; max-width:64ch; }
+  ul.plain li, ol.plain li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+  .accent-word{ color:var(--accent-ink); font-weight:600; }
+
+  /* ---------- code panel ---------- */
+  .code-panel{
+    background:var(--code-bg); color:var(--code-ink);
+    border-radius:11px; overflow:hidden;
+    margin:16px 0 22px; box-shadow:var(--shadow);
+  }
+  .code-panel .tab{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px; font-size:11.5px;
+    font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
+    color:#9fb3c8; background:rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel pre{
+    margin:0; padding:14px 16px 16px; overflow-x:auto;
+    font-size:12.8px; line-height:1.65;
+  }
+  .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
+  .tok-c{ color:#8592a6; } /* comment */
+  .tok-k{ color:#e8935a; } /* keyword */
+  .tok-s{ color:#8fc7a8; } /* string */
+  .tok-f{ color:#7fb5e8; } /* function/name */
+  .tok-n{ color:#e7ecf1; }
+
+  code.inline{
+    background:var(--surface-2); border:1px solid var(--line);
+    padding:1.5px 6px; border-radius:5px; font-size:.87em;
+  }
+
+  /* ---------- figures / diagrams ---------- */
+  figure.diagram{
+    margin:24px 0 26px; padding:18px 18px 14px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:13px; box-shadow:var(--shadow);
+  }
+  figure.diagram svg{ display:block; width:100%; height:auto; overflow:visible; }
+  figure.diagram figcaption{
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+  figure.diagram figcaption b{ color:var(--ink); }
+  .svg-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; fill:currentColor; }
+  .svg-title{ font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; font-weight:600; fill:currentColor; }
+  .svg-dim{ opacity:.62; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-radius:12px; padding:16px 18px; margin:20px 0;
+    border:1px solid var(--line); background:var(--surface);
+  }
+  .callout.takeaway{
+    background:var(--accent-soft); border-color:transparent;
+  }
+  .callout.takeaway .head{
+    display:flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:700; margin-bottom:10px;
+  }
+  .callout.takeaway ol{ margin:0; padding-left:1.2em; }
+  .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
+  .callout.note{ background:var(--accent2-soft); }
+  .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+
+  .pairgrid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin:18px 0;
+  }
+  .pairgrid .card{
+    border:1px solid var(--line); border-radius:11px; padding:13px 15px;
+    background:var(--surface);
+  }
+  .pairgrid .card h4{ font-size:13.5px; margin-bottom:6px; font-family:"IBM Plex Sans"; }
+  .pairgrid .card p{ font-size:13px; color:var(--ink-dim); margin:0; }
+  @media (max-width:640px){ .pairgrid{ grid-template-columns:1fr; } }
+
+  table.reftable{
+    width:100%; border-collapse:collapse; margin:16px 0 22px;
+    font-size:13.5px;
+  }
+  table.reftable th{
+    text-align:left; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim);
+    padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  table.reftable td{
+    padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top;
+  }
+  table.reftable tr:last-child td{ border-bottom:none; }
+  table.reftable code{ font-size:12px; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:2.5px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+    font-family:"IBM Plex Mono",monospace; white-space:nowrap;
+  }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.bad{ background:var(--bad-soft); color:var(--bad); }
+  .pill::before{ content:"●"; font-size:8px; }
+
+  .chapfoot{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:46px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  footer.end{
+    margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:78vw; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease;
+      z-index:50; box-shadow:var(--shadow);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .menu-btn{ display:flex; }
+    .content{ padding-top:76px; }
+    .overlay{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:45;
+    }
+    .overlay.show{ display:block; }
+    .pairgrid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="menu-btn" id="menuBtn" role="button" aria-label="打开目录" tabindex="0">
+  <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="菜单"><line x1="1" y1="4" x2="17" y2="4" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.6"/></svg>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="kicker">Build an AI Agent · 学习指南</span>
+      <h1>从零构建 AI Agent</h1>
+      <span class="sub">10 章代码精读 · 图解版 · 面向初学者</span>
+    </div>
+    <nav class="toc" id="toc">
+      <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <div class="group-label">Part 1 · 搭建第一个 Agent</div>
+      <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
+      <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
+      <a href="ch03_工具与FunctionCalling.html"><span class="num">03</span>工具调用</a>
+      <a href="ch04_构建ReAct_Agent.html"><span class="num">04</span>ReAct Agent</a>
+      <div class="group-label">Part 2 · 进阶能力</div>
+      <a href="ch05_RAG与文件工具.html"><span class="num">05</span>RAG 与文件工具</a>
+      <a class="active" href="ch06_记忆系统.html"><span class="num">06</span>记忆系统</a>
+      <a href="ch07_规划与反思.html"><span class="num">07</span>规划与反思</a>
+      <a href="ch08_代码执行.html"><span class="num">08</span>代码执行</a>
+      <a href="ch09_多智能体系统.html"><span class="num">09</span>多智能体系统</a>
+      <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
+      <div class="group-label">附录</div>
+      <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="content">
+
+<section id="ch6" class="chapter">
+        <div class="ch-eyebrow"><span>Chapter 06</span><span class="line"></span><span>scratch_agents/memory/</span></div>
+        <h2>给 Agent 添加记忆</h2>
+        <p class="dek">第 2 章讲过：LLM 无状态，"记忆"是客户端造出来的假象。本章把这个假象工程化成三层记忆体系，分别解决三个时间尺度上的问题。</p>
+
+        <figure class="diagram">
+          <svg viewBox="0 0 680 210" role="img" aria-label="三层记忆体系：执行内上下文优化解决单次运行内历史过长的问题，会话解决多次运行之间的连续性问题，长期向量记忆解决跨会话的经验积累问题，时间尺度依次增大">
+            <defs><marker id="ar8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/></marker></defs>
+            <line x1="30" y1="30" x2="650" y2="30" stroke="currentColor" stroke-width="1" marker-end="url(#ar8)" opacity=".5"/>
+            <text x="650" y="20" text-anchor="end" class="svg-label svg-dim">时间尺度增大 →</text>
+
+            <rect x="14" y="46" width="200" height="140" rx="12" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="114" y="70" text-anchor="middle" class="svg-title">执行内优化</text>
+            <text x="114" y="90" text-anchor="middle" class="svg-label svg-dim">一次 run() 内</text>
+            <text x="114" y="114" text-anchor="middle" class="svg-label svg-dim">滑动窗口</text>
+            <text x="114" y="132" text-anchor="middle" class="svg-label svg-dim">Compaction 压实</text>
+            <text x="114" y="150" text-anchor="middle" class="svg-label svg-dim">Summarization 摘要</text>
+            <text x="114" y="172" text-anchor="middle" class="svg-label svg-dim">解决：塞爆上下文</text>
+
+            <rect x="238" y="46" width="200" height="140" rx="12" fill="var(--accent-soft)" stroke="none"/>
+            <text x="338" y="70" text-anchor="middle" class="svg-title" fill="var(--accent-ink)">Session 会话</text>
+            <text x="338" y="90" text-anchor="middle" class="svg-label svg-dim">跨多次 run()</text>
+            <text x="338" y="114" text-anchor="middle" class="svg-label svg-dim">events + state 持久化</text>
+            <text x="338" y="132" text-anchor="middle" class="svg-label svg-dim">暂停 / 恢复(HITL)</text>
+            <text x="338" y="172" text-anchor="middle" class="svg-label svg-dim">解决：关掉就忘</text>
+
+            <rect x="462" y="46" width="200" height="140" rx="12" fill="var(--accent2-soft)" stroke="none"/>
+            <text x="562" y="70" text-anchor="middle" class="svg-title" fill="var(--accent2)">长期记忆</text>
+            <text x="562" y="90" text-anchor="middle" class="svg-label svg-dim">跨会话 / 跨任务</text>
+            <text x="562" y="114" text-anchor="middle" class="svg-label svg-dim">ChromaDB 向量库</text>
+            <text x="562" y="132" text-anchor="middle" class="svg-label svg-dim">结构化经验(TaskMemory)</text>
+            <text x="562" y="172" text-anchor="middle" class="svg-label svg-dim">解决：经验无法积累</text>
+          </svg>
+          <figcaption><b>图 6.1</b> — 记忆分三层，时间尺度依次增大：单次运行内的优化只改"这次发给模型什么"的视图，不动历史；Session 让对话跨进程重启后仍能续上；长期记忆让 Agent 从"以前解过的题"里学习。</figcaption>
+        </figure>
+
+        <h3 class="subhead"><span class="n">6.1</span>执行内优化的铁律：只改视图，不动历史</h3>
+        <p>三种策略从便宜到昂贵依次尝试：<strong>滑动窗口</strong>（保留头部用户问题 + 最近 N 条，最笨但零成本）；<strong>Compaction 压实</strong>——把肥大的工具结果换成一句"占位引用"（<em>"File content from x.csv. Re-read if needed."</em>），信息没有消失，模型需要时可以再调工具拿回来；<strong>Summarization 摘要</strong>——用 LLM 把中段历史总结成一段文字，最贵但最智能，且做<strong>增量摘要</strong>避免重复劳动。三者组合使用：先测 token 数，够用就不动，超标先上便宜的 compaction，还不够再上摘要。</p>
+
+        <h3 class="subhead"><span class="n">6.2</span>Human-in-the-loop 2.0：暂停与恢复</h3>
+        <figure class="diagram">
+          <svg viewBox="0 0 660 190" role="img" aria-label="人工审批状态机：Agent运行中遇到需要确认的危险工具就暂停并持久化会话，用户批准后带着可能修改过的参数恢复执行，拒绝则以错误结果继续；两种结局都会记入历史">
+            <defs><marker id="ar9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/></marker></defs>
+            <rect x="10" y="70" width="120" height="54" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="70" y="92" text-anchor="middle" class="svg-title">运行中</text>
+            <text x="70" y="110" text-anchor="middle" class="svg-label svg-dim">status=complete</text>
+
+            <line x1="130" y1="97" x2="196" y2="97" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar9)"/>
+            <text x="163" y="88" text-anchor="middle" class="svg-label svg-dim" font-size="10">遇到危险工具</text>
+
+            <rect x="200" y="60" width="150" height="74" rx="10" fill="var(--warn-soft)" stroke="none"/>
+            <text x="275" y="84" text-anchor="middle" class="svg-title" fill="var(--warn)">暂停</text>
+            <text x="275" y="102" text-anchor="middle" class="svg-label svg-dim">pending_confirmation</text>
+            <text x="275" y="118" text-anchor="middle" class="svg-label svg-dim">session 存盘</text>
+
+            <path d="M350,84 C400,60 440,60 480,80" fill="none" stroke="var(--good)" stroke-width="1.2" marker-end="url(#ar9)"/>
+            <text x="415" y="56" text-anchor="middle" class="svg-label" fill="var(--good)" font-size="10">approved=True(可改参数)</text>
+            <path d="M350,110 C400,140 440,150 480,130" fill="none" stroke="var(--bad)" stroke-width="1.2" marker-end="url(#ar9)"/>
+            <text x="415" y="158" text-anchor="middle" class="svg-label" fill="var(--bad)" font-size="10">approved=False</text>
+
+            <rect x="484" y="60" width="150" height="74" rx="10" fill="var(--good-soft)" stroke="none"/>
+            <text x="559" y="84" text-anchor="middle" class="svg-title" fill="var(--good)">恢复执行</text>
+            <text x="559" y="102" text-anchor="middle" class="svg-label svg-dim">合并参数后执行</text>
+            <text x="559" y="118" text-anchor="middle" class="svg-label svg-dim">/ 记一条 error 结果</text>
+
+            <text x="330" y="20" text-anchor="middle" class="svg-label svg-dim">两种结局都变成 ToolResult 写回历史——模型甚至不知道中间隔了三天</text>
+          </svg>
+          <figcaption><b>图 6.2</b> — 正确的人工审批姿势不是同步阻塞等待输入，而是"暂停（<code class="inline">pending_confirmation</code>）→ 持久化到 Session → 恢复（<code class="inline">tool_confirmations</code>）"，进程可以退出、服务器可以重启，状态全在存储里。</figcaption>
+        </figure>
+
+        <h3 class="subhead"><span class="n">6.3</span>长期记忆：模型隐形的"请求处理插件"</h3>
+        <p>存储的是 LLM <strong>提炼后的结构化经验</strong>（题目、方法、对错、错误分析），不是原始日志。最巧妙的设计是检索方式：给 <code class="inline">MemoryTool</code> 传 <code class="inline">tool_definition=None</code>，它就变成一个<strong>模型看不见的工具</strong>——不出现在工具清单里，但每次 LLM 调用前都会自动检索相关记忆并注入到提示词里。"工具"的概念在此升维成了<strong>请求处理插件</strong>，而不只是"模型可调用的函数"。</p>
+
+        <div class="callout takeaway">
+          <div class="head">本章要带走的几句话</div>
+          <ol>
+            <li>记忆分三层：执行内优化（一次 run）→ Session（跨 run）→ 向量长期记忆（跨会话），时间尺度依次增大。</li>
+            <li>上下文优化的铁律：只改 request 视图，不动 events 存储；先零成本 compaction，不够再上摘要。</li>
+            <li>Human-in-the-loop 的正确姿势是"暂停 → 持久化 → 恢复"，而不是阻塞等待。</li>
+            <li>长期记忆存 LLM 提炼的结构化经验（含错误分析），提炼和查重都交给 LLM 自己判断。</li>
+            <li><code class="inline">tool_definition=None</code> + 请求前置钩子 = 对模型隐形、自动注入记忆的插件。</li>
+          </ol>
+        </div>
+        
+      </section>
+
+<div class="chapfoot"><a href="ch05_RAG与文件工具.html">&larr; RAG 与文件工具</a><a href="ch07_规划与反思.html">规划与反思 &rarr;</a></div>
+
+      <footer class="end">
+        本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var sidebar = document.getElementById('sidebar');
+  var menuBtn = document.getElementById('menuBtn');
+  var overlay = document.getElementById('overlay');
+  function closeMenu(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  function toggleMenu(){ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); }
+  menuBtn.addEventListener('click', toggleMenu);
+  menuBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleMenu(); }});
+  overlay.addEventListener('click', closeMenu);
+  document.querySelectorAll('nav.toc a').forEach(function(a){
+    a.addEventListener('click', function(){ closeMenu(); });
+  });
+})();
+</script>
+</body>
+</html>

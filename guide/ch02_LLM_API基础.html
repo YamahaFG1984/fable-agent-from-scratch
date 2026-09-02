@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第02章 · LLM API 基础 — 从零构建 AI Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1ef;
+    --surface:#ffffff;
+    --surface-2:#e6e9e5;
+    --ink:#1a2233;
+    --ink-dim:#4b5566;
+    --line:#d5d9d2;
+    --accent:#b5551f;
+    --accent-ink:#7a3a12;
+    --accent-soft:#f3e3d6;
+    --accent2:#276b64;
+    --accent2-soft:#dcece9;
+    --code-bg:#1a2233;
+    --code-ink:#e7ecef;
+    --code-accent:#e8935a;
+    --good:#2f7a4f;
+    --good-soft:#dcefe1;
+    --warn:#a5730b;
+    --warn-soft:#f6ecd6;
+    --bad:#a5341f;
+    --bad-soft:#f6ddd6;
+    --shadow: 0 1px 2px rgba(20,26,20,.06), 0 8px 24px -12px rgba(20,26,20,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171e28;
+      --surface-2:#1d2530;
+      --ink:#e7ecf1;
+      --ink-dim:#a7b1c0;
+      --line:#2a323d;
+      --accent:#e8935a;
+      --accent-ink:#f4b384;
+      --accent-soft:#3a2a1e;
+      --accent2:#5fc1b6;
+      --accent2-soft:#173330;
+      --code-bg:#0c1016;
+      --code-ink:#e7ecf1;
+      --code-accent:#e8935a;
+      --good:#5fd08a;
+      --good-soft:#123423;
+      --warn:#e0b34f;
+      --warn-soft:#3a2e12;
+      --bad:#e88a76;
+      --bad-soft:#3a1d16;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171e28;
+    --surface-2:#1d2530;
+    --ink:#e7ecf1;
+    --ink-dim:#a7b1c0;
+    --line:#2a323d;
+    --accent:#e8935a;
+    --accent-ink:#f4b384;
+    --accent-soft:#3a2a1e;
+    --accent2:#5fc1b6;
+    --accent2-soft:#173330;
+    --code-bg:#0c1016;
+    --code-ink:#e7ecf1;
+    --code-accent:#e8935a;
+    --good:#5fd08a;
+    --good-soft:#123423;
+    --warn:#e0b34f;
+    --warn-soft:#3a2e12;
+    --bad:#e88a76;
+    --bad-soft:#3a1d16;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", "Noto Sans SC", system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.7;
+  }
+  h1,h2,h3,h4{
+    font-family:"Source Serif 4","Noto Serif SC",Georgia,serif;
+    color:var(--ink);
+    text-wrap:balance;
+    margin:0;
+  }
+  code, pre, .mono, .eyebrow, .tag, .kbd{
+    font-family:"IBM Plex Mono","Noto Sans SC",monospace;
+  }
+  a{color:var(--accent-ink);}
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 272px minmax(0,1fr);
+    min-height:100vh;
+  }
+  .sidebar{
+    position:sticky; top:0; align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+    background:var(--surface);
+    padding:22px 18px 40px;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:4px;
+    padding-bottom:16px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .kicker{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+  .brand h1{ font-size:21px; line-height:1.25; }
+  .brand .sub{ font-size:12.5px; color:var(--ink-dim); }
+
+  nav.toc{ display:flex; flex-direction:column; gap:2px; }
+  nav.toc a{
+    display:flex; align-items:baseline; gap:9px;
+    padding:7px 9px; border-radius:7px;
+    text-decoration:none; color:var(--ink-dim);
+    font-size:13.5px;
+    border-left:2px solid transparent;
+  }
+  nav.toc a .num{
+    font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--ink-dim); min-width:20px;
+  }
+  nav.toc a:hover{ background:var(--surface-2); color:var(--ink); }
+  nav.toc a.active{
+    background:var(--accent-soft); color:var(--accent-ink);
+    border-left-color:var(--accent); font-weight:600;
+  }
+  nav.toc .group-label{
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-dim); opacity:.75;
+    margin:14px 9px 4px; font-weight:600;
+  }
+  nav.toc .group-label:first-child{ margin-top:2px; }
+
+  .menu-btn{
+    display:none; position:fixed; z-index:40; top:14px; left:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    width:40px; height:40px; align-items:center; justify-content:center;
+    box-shadow:var(--shadow); color:var(--ink);
+  }
+
+  main{ min-width:0; }
+  .content{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 28px 120px;
+  }
+
+  /* ---------- hero / cover ---------- */
+  .hero{
+    padding-bottom:38px; margin-bottom:44px;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .kicker{
+    font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .hero h1{ font-size:40px; line-height:1.15; margin-bottom:14px; }
+  .hero .dek{ font-size:17px; color:var(--ink-dim); max-width:60ch; }
+  .hero .meta{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin-top:22px; font-size:13px; color:var(--ink-dim);
+  }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- chapter chrome ---------- */
+  section.chapter{
+    padding-top:64px; margin-top:-8px;
+    scroll-margin-top:20px;
+  }
+  section.chapter:first-of-type{ padding-top:0; }
+  .ch-eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .ch-eyebrow .line{ height:1px; flex:1; background:var(--line); }
+  section.chapter h2{ font-size:29px; line-height:1.25; margin-bottom:8px; }
+  section.chapter .dek{ color:var(--ink-dim); font-size:15.5px; max-width:64ch; margin-bottom:28px; }
+
+  h3.subhead{
+    font-size:18px; margin:34px 0 12px;
+    padding-top:4px;
+  }
+  h3.subhead .n{ color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:14px; margin-right:8px; }
+
+  p{ margin:0 0 14px; max-width:66ch; }
+  ul.plain, ol.plain{ margin:0 0 16px; padding-left:1.3em; max-width:64ch; }
+  ul.plain li, ol.plain li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+  .accent-word{ color:var(--accent-ink); font-weight:600; }
+
+  /* ---------- code panel ---------- */
+  .code-panel{
+    background:var(--code-bg); color:var(--code-ink);
+    border-radius:11px; overflow:hidden;
+    margin:16px 0 22px; box-shadow:var(--shadow);
+  }
+  .code-panel .tab{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px; font-size:11.5px;
+    font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
+    color:#9fb3c8; background:rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel pre{
+    margin:0; padding:14px 16px 16px; overflow-x:auto;
+    font-size:12.8px; line-height:1.65;
+  }
+  .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
+  .tok-c{ color:#8592a6; } /* comment */
+  .tok-k{ color:#e8935a; } /* keyword */
+  .tok-s{ color:#8fc7a8; } /* string */
+  .tok-f{ color:#7fb5e8; } /* function/name */
+  .tok-n{ color:#e7ecf1; }
+
+  code.inline{
+    background:var(--surface-2); border:1px solid var(--line);
+    padding:1.5px 6px; border-radius:5px; font-size:.87em;
+  }
+
+  /* ---------- figures / diagrams ---------- */
+  figure.diagram{
+    margin:24px 0 26px; padding:18px 18px 14px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:13px; box-shadow:var(--shadow);
+  }
+  figure.diagram svg{ display:block; width:100%; height:auto; overflow:visible; }
+  figure.diagram figcaption{
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+  figure.diagram figcaption b{ color:var(--ink); }
+  .svg-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; fill:currentColor; }
+  .svg-title{ font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; font-weight:600; fill:currentColor; }
+  .svg-dim{ opacity:.62; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-radius:12px; padding:16px 18px; margin:20px 0;
+    border:1px solid var(--line); background:var(--surface);
+  }
+  .callout.takeaway{
+    background:var(--accent-soft); border-color:transparent;
+  }
+  .callout.takeaway .head{
+    display:flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:700; margin-bottom:10px;
+  }
+  .callout.takeaway ol{ margin:0; padding-left:1.2em; }
+  .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
+  .callout.note{ background:var(--accent2-soft); }
+  .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+
+  .pairgrid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin:18px 0;
+  }
+  .pairgrid .card{
+    border:1px solid var(--line); border-radius:11px; padding:13px 15px;
+    background:var(--surface);
+  }
+  .pairgrid .card h4{ font-size:13.5px; margin-bottom:6px; font-family:"IBM Plex Sans"; }
+  .pairgrid .card p{ font-size:13px; color:var(--ink-dim); margin:0; }
+  @media (max-width:640px){ .pairgrid{ grid-template-columns:1fr; } }
+
+  table.reftable{
+    width:100%; border-collapse:collapse; margin:16px 0 22px;
+    font-size:13.5px;
+  }
+  table.reftable th{
+    text-align:left; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim);
+    padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  table.reftable td{
+    padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top;
+  }
+  table.reftable tr:last-child td{ border-bottom:none; }
+  table.reftable code{ font-size:12px; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:2.5px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+    font-family:"IBM Plex Mono",monospace; white-space:nowrap;
+  }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.bad{ background:var(--bad-soft); color:var(--bad); }
+  .pill::before{ content:"●"; font-size:8px; }
+
+  .chapfoot{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:46px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  footer.end{
+    margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:78vw; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease;
+      z-index:50; box-shadow:var(--shadow);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .menu-btn{ display:flex; }
+    .content{ padding-top:76px; }
+    .overlay{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:45;
+    }
+    .overlay.show{ display:block; }
+    .pairgrid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="menu-btn" id="menuBtn" role="button" aria-label="打开目录" tabindex="0">
+  <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="菜单"><line x1="1" y1="4" x2="17" y2="4" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.6"/></svg>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="kicker">Build an AI Agent · 学习指南</span>
+      <h1>从零构建 AI Agent</h1>
+      <span class="sub">10 章代码精读 · 图解版 · 面向初学者</span>
+    </div>
+    <nav class="toc" id="toc">
+      <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <div class="group-label">Part 1 · 搭建第一个 Agent</div>
+      <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
+      <a class="active" href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
+      <a href="ch03_工具与FunctionCalling.html"><span class="num">03</span>工具调用</a>
+      <a href="ch04_构建ReAct_Agent.html"><span class="num">04</span>ReAct Agent</a>
+      <div class="group-label">Part 2 · 进阶能力</div>
+      <a href="ch05_RAG与文件工具.html"><span class="num">05</span>RAG 与文件工具</a>
+      <a href="ch06_记忆系统.html"><span class="num">06</span>记忆系统</a>
+      <a href="ch07_规划与反思.html"><span class="num">07</span>规划与反思</a>
+      <a href="ch08_代码执行.html"><span class="num">08</span>代码执行</a>
+      <a href="ch09_多智能体系统.html"><span class="num">09</span>多智能体系统</a>
+      <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
+      <div class="group-label">附录</div>
+      <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="content">
+
+<section id="ch2" class="chapter">
+        <div class="ch-eyebrow"><span>Chapter 02</span><span class="line"></span><span>notebooks/ch02</span></div>
+        <h2>LLM API 基础</h2>
+        <p class="dek">写任何 Agent 代码之前，必须先搞懂怎么和 LLM 对话。这一章的终点是一次真实的"翻车"：裸 LLM 在 GAIA 上答不出需要查资料的题——这个失败正是第 3 章要解决的问题。</p>
+
+        <h3 class="subhead"><span class="n">2.1</span>两家 API 的共同骨架</h3>
+        <p>OpenAI 和 Anthropic 的调用方式长得不一样，但骨架相同：<strong>一个模型名 + 一个 <code class="inline">messages</code> 列表 → 一条回复</strong>。</p>
+        <div class="code-panel">
+          <div class="tab"><span class="dot"></span>openai_call.py</div>
+          <pre><code><span class="tok-k">from</span> <span class="tok-n">openai</span> <span class="tok-k">import</span> <span class="tok-n">OpenAI</span>
+<span class="tok-n">client</span> = <span class="tok-f">OpenAI</span>()
+<span class="tok-n">response</span> = <span class="tok-n">client</span>.<span class="tok-n">chat</span>.<span class="tok-n">completions</span>.<span class="tok-f">create</span>(
+    <span class="tok-n">model</span>=<span class="tok-s">"gpt-5.4-mini"</span>,
+    <span class="tok-n">messages</span>=[
+        {<span class="tok-s">"role"</span>: <span class="tok-s">"system"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"You are a helpful assistant."</span>},
+        {<span class="tok-s">"role"</span>: <span class="tok-s">"user"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"What is the capital of France?"</span>}
+    ]
+)
+<span class="tok-f">print</span>(<span class="tok-n">response</span>.<span class="tok-n">choices</span>[0].<span class="tok-n">message</span>.<span class="tok-n">content</span>)</code></pre>
+        </div>
+        <p><code class="inline">role</code> 只有三种身份：<strong>system</strong>（开发者设定行为）、<strong>user</strong>（用户输入）、<strong>assistant</strong>（模型历史回复）。两家的差异——字段名不同、Anthropic 强制要求 <code class="inline">max_tokens</code>——正是下一节要解决的"多厂商割裂"问题。</p>
+
+        <h3 class="subhead"><span class="n">2.2</span>用 LiteLLM 统一多厂商</h3>
+        <div class="code-panel">
+          <div class="tab"><span class="dot"></span>litellm_unify.py</div>
+          <pre><code><span class="tok-k">from</span> <span class="tok-n">litellm</span> <span class="tok-k">import</span> <span class="tok-n">completion</span>
+
+<span class="tok-n">response</span> = <span class="tok-f">completion</span>(<span class="tok-n">model</span>=<span class="tok-s">"gpt-5.4-mini"</span>, <span class="tok-n">messages</span>=[...])       <span class="tok-c"># OpenAI</span>
+<span class="tok-n">response</span> = <span class="tok-f">completion</span>(<span class="tok-n">model</span>=<span class="tok-s">"claude-sonnet-4-6"</span>, <span class="tok-n">messages</span>=[...])  <span class="tok-c"># Anthropic</span></code></pre>
+        </div>
+        <p>LiteLLM 把所有厂商响应统一成 OpenAI 格式，换模型只需换一个字符串。这是全书的一个关键工程决策：框架的 LLM 通信层（<code class="inline">scratch_agents/llm.py</code> 里的 <code class="inline">LlmClient</code>）直接构建在 <code class="inline">litellm.acompletion</code> 之上，所以第 4 章写好的 Agent 天生支持任何模型厂商。</p>
+
+        <h3 class="subhead"><span class="n">2.3</span>全章最重要的认知：API 是无状态的</h3>
+        <figure class="diagram">
+          <svg viewBox="0 0 660 220" role="img" aria-label="LLM API 是无状态的：两次调用之间服务器不保存任何记忆，记忆是客户端每次重发全部历史造出来的假象">
+            <defs><marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/></marker></defs>
+            <rect x="10" y="20" width="150" height="170" rx="12" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+            <text x="85" y="42" text-anchor="middle" class="svg-title">你的程序</text>
+            <text x="85" y="62" text-anchor="middle" class="svg-label svg-dim">messages = []</text>
+            <rect x="24" y="76" width="122" height="26" rx="6" fill="var(--accent-soft)" stroke="none"/>
+            <text x="85" y="93" text-anchor="middle" class="svg-label">user: 我叫 Jungjun</text>
+            <rect x="24" y="108" width="122" height="26" rx="6" fill="var(--accent-soft)" stroke="none"/>
+            <text x="85" y="125" text-anchor="middle" class="svg-label">assistant: 你好!</text>
+            <rect x="24" y="140" width="122" height="26" rx="6" fill="var(--accent-soft)" stroke="none"/>
+            <text x="85" y="157" text-anchor="middle" class="svg-label">user: 我叫什么？</text>
+            <text x="85" y="176" text-anchor="middle" class="svg-label svg-dim">↑ 客户端自己维护</text>
+
+            <path d="M162,70 C210,50 260,45 300,70" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+            <text x="230" y="48" text-anchor="middle" class="svg-label svg-dim">调用①: 仅这 1 条</text>
+            <path d="M162,150 C220,175 260,175 300,150" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+            <text x="230" y="182" text-anchor="middle" class="svg-label svg-dim">调用②: 重发全部 3 条</text>
+
+            <rect x="306" y="60" width="180" height="110" rx="14" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 4"/>
+            <text x="396" y="86" text-anchor="middle" class="svg-title" fill="var(--accent-ink)">LLM API</text>
+            <text x="396" y="106" text-anchor="middle" class="svg-label svg-dim">无状态 · 不留记忆</text>
+            <text x="396" y="126" text-anchor="middle" class="svg-label svg-dim">只看这次收到的</text>
+            <text x="396" y="142" text-anchor="middle" class="svg-label svg-dim">messages 列表</text>
+
+            <path d="M486,90 C540,80 600,80 640,90" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+            <text x="600" y="72" text-anchor="middle" class="svg-label svg-dim">"抱歉不知道"</text>
+            <path d="M486,140 C540,150 600,150 640,140" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+            <text x="600" y="160" text-anchor="middle" class="svg-label" fill="var(--accent2)">"你叫 Jungjun"</text>
+          </svg>
+          <figcaption><b>图 2.1</b> — 服务器不保存任何一次调用之间的状态。第二次调用能"记得"名字，唯一原因是客户端把第一轮的完整历史又重新发了一遍。这不是缺陷，而是设计：记忆的责任被完全交给了调用方。</figcaption>
+        </figure>
+        <p>解法就是自己维护一个 <code class="inline">messages</code> 列表：每轮把用户输入和模型回复都 <code class="inline">append</code> 进去，下次把整个列表重新发过去。<strong>这一个模式是全书的种子</strong>——第 4 章的 <code class="inline">ExecutionContext.events</code> 是它的结构化升级版，第 6 章的记忆系统是"历史太长塞不下时怎么办"的解法。</p>
+
+        <h3 class="subhead"><span class="n">2.4</span>结构化输出：把 LLM 变成软件组件</h3>
+        <div class="code-panel">
+          <div class="tab"><span class="dot"></span>structured_output.py</div>
+          <pre><code><span class="tok-k">from</span> <span class="tok-n">pydantic</span> <span class="tok-k">import</span> <span class="tok-n">BaseModel</span>
+
+<span class="tok-k">class</span> <span class="tok-f">ExtractedInfo</span>(<span class="tok-n">BaseModel</span>):
+    <span class="tok-n">name</span>: <span class="tok-n">str</span>
+    <span class="tok-n">email</span>: <span class="tok-n">str</span>
+    <span class="tok-n">phone</span>: <span class="tok-n">str</span> | <span class="tok-n">None</span> = <span class="tok-n">None</span>
+
+<span class="tok-n">response</span> = <span class="tok-f">completion</span>(
+    <span class="tok-n">model</span>=<span class="tok-s">"gpt-5.4-mini"</span>,
+    <span class="tok-n">messages</span>=[{<span class="tok-s">"role"</span>: <span class="tok-s">"user"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"..."</span>}],
+    <span class="tok-n">response_format</span>=<span class="tok-n">ExtractedInfo</span>,   <span class="tok-c"># ← 关键</span>
+)</code></pre>
+        </div>
+        <p>传入 Pydantic 模型作为 <code class="inline">response_format</code>，模型输出就被约束成符合该 schema 的 JSON——程序无法可靠解析自由文本，但能可靠解析 <code class="inline">ExtractedInfo</code>。第 4 章 Agent 的 <code class="inline">output_type</code>、第 6 章的记忆抽取都靠这一招。</p>
+
+        <h3 class="subhead"><span class="n">2.5</span>生产三件套：异步、并发限流、自动重试</h3>
+        <div class="code-panel">
+          <div class="tab"><span class="dot"></span>concurrent_calls.py</div>
+          <pre><code><span class="tok-n">semaphore</span> = <span class="tok-n">asyncio</span>.<span class="tok-f">Semaphore</span>(10)   <span class="tok-c"># 最多 10 个请求同时在飞</span>
+
+<span class="tok-k">async</span> <span class="tok-k">def</span> <span class="tok-f">call_llm</span>(<span class="tok-n">prompt</span>: <span class="tok-n">str</span>) -> <span class="tok-n">str</span>:
+    <span class="tok-k">async</span> <span class="tok-k">with</span> <span class="tok-n">semaphore</span>:           <span class="tok-c"># 第 11 个请求排队等</span>
+        <span class="tok-n">response</span> = <span class="tok-k">await</span> <span class="tok-f">acompletion</span>(
+            <span class="tok-n">model</span>=..., <span class="tok-n">messages</span>=[...],
+            <span class="tok-n">num_retries</span>=3,          <span class="tok-c"># 失败自动指数退避重试</span>
+        )
+        <span class="tok-k">return</span> ...
+
+<span class="tok-n">results</span> = <span class="tok-k">await</span> <span class="tok-n">asyncio</span>.<span class="tok-f">gather</span>(*<span class="tok-n">tasks</span>, <span class="tok-n">return_exceptions</span>=<span class="tok-n">True</span>)</code></pre>
+        </div>
+        <p>LLM 调用的瓶颈是网络等待而非本地计算，天然适合异步；<code class="inline">Semaphore</code> 防止撞上速率限制；<code class="inline">return_exceptions=True</code> 让单个失败不拖垮其余 99 个。这也是为什么框架里 <code class="inline">Agent.run()</code> 和所有工具执行全部是 <code class="inline">async</code> 的。</p>
+
+        <h3 class="subhead"><span class="n">2.6</span>实战收尾：裸 LLM 在 GAIA 上的失败</h3>
+        <p>本章用 GAIA 基准把上面所有知识点串起来：让四个模型（<code class="inline">gpt-5.5</code>、<code class="inline">gpt-5.4-mini</code>、<code class="inline">claude-sonnet-4-6</code>、<code class="inline">claude-haiku-4-5</code>）在没有任何工具的情况下跑 GAIA。提示词设计里有个值得注意的细节：让模型自己申报 <code class="inline">is_solvable</code>（能不能解）。面对"打开这个 Excel 文件统计销量"这类题，裸 LLM 只能诚实地说"我做不到"。</p>
+        <div class="callout note">
+          <div class="head">这个失败就是全书的引子</div>
+          <p style="margin:0;">模型缺的不是智力，是"手"。第 3 章给它工具，第 4 章教它自主循环使用工具——从此它才配叫 Agent。</p>
+        </div>
+
+        <div class="callout takeaway">
+          <div class="head">本章要带走的几句话</div>
+          <ol>
+            <li>LLM API = <code class="inline">messages</code> 进，一条回复出；<code class="inline">role</code> 区分系统 / 用户 / 助手。</li>
+            <li><strong>API 无状态</strong>——记忆是客户端每次重发全部历史造出来的假象，这是理解 Agent 的第一性原理。</li>
+            <li>LiteLLM 统一多厂商；Pydantic <code class="inline">response_format</code> 把 LLM 变成可靠的程序组件。</li>
+            <li>生产级调用三件套：异步并发、信号量限流、自动重试。</li>
+            <li>裸 LLM 在 GAIA 上的失败证明：它需要工具和执行循环——这正是第 3、4 章要构建的东西。</li>
+          </ol>
+        </div>
+        
+      </section>
+
+<div class="chapfoot"><a href="ch01_什么是AI_Agent.html">&larr; 什么是 AI Agent</a><a href="ch03_工具与FunctionCalling.html">工具调用 &rarr;</a></div>
+
+      <footer class="end">
+        本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var sidebar = document.getElementById('sidebar');
+  var menuBtn = document.getElementById('menuBtn');
+  var overlay = document.getElementById('overlay');
+  function closeMenu(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  function toggleMenu(){ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); }
+  menuBtn.addEventListener('click', toggleMenu);
+  menuBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleMenu(); }});
+  overlay.addEventListener('click', closeMenu);
+  document.querySelectorAll('nav.toc a').forEach(function(a){
+    a.addEventListener('click', function(){ closeMenu(); });
+  });
+})();
+</script>
+</body>
+</html>

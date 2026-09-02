@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第05章 · RAG 与文件工具 — 从零构建 AI Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1ef;
+    --surface:#ffffff;
+    --surface-2:#e6e9e5;
+    --ink:#1a2233;
+    --ink-dim:#4b5566;
+    --line:#d5d9d2;
+    --accent:#b5551f;
+    --accent-ink:#7a3a12;
+    --accent-soft:#f3e3d6;
+    --accent2:#276b64;
+    --accent2-soft:#dcece9;
+    --code-bg:#1a2233;
+    --code-ink:#e7ecef;
+    --code-accent:#e8935a;
+    --good:#2f7a4f;
+    --good-soft:#dcefe1;
+    --warn:#a5730b;
+    --warn-soft:#f6ecd6;
+    --bad:#a5341f;
+    --bad-soft:#f6ddd6;
+    --shadow: 0 1px 2px rgba(20,26,20,.06), 0 8px 24px -12px rgba(20,26,20,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171e28;
+      --surface-2:#1d2530;
+      --ink:#e7ecf1;
+      --ink-dim:#a7b1c0;
+      --line:#2a323d;
+      --accent:#e8935a;
+      --accent-ink:#f4b384;
+      --accent-soft:#3a2a1e;
+      --accent2:#5fc1b6;
+      --accent2-soft:#173330;
+      --code-bg:#0c1016;
+      --code-ink:#e7ecf1;
+      --code-accent:#e8935a;
+      --good:#5fd08a;
+      --good-soft:#123423;
+      --warn:#e0b34f;
+      --warn-soft:#3a2e12;
+      --bad:#e88a76;
+      --bad-soft:#3a1d16;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171e28;
+    --surface-2:#1d2530;
+    --ink:#e7ecf1;
+    --ink-dim:#a7b1c0;
+    --line:#2a323d;
+    --accent:#e8935a;
+    --accent-ink:#f4b384;
+    --accent-soft:#3a2a1e;
+    --accent2:#5fc1b6;
+    --accent2-soft:#173330;
+    --code-bg:#0c1016;
+    --code-ink:#e7ecf1;
+    --code-accent:#e8935a;
+    --good:#5fd08a;
+    --good-soft:#123423;
+    --warn:#e0b34f;
+    --warn-soft:#3a2e12;
+    --bad:#e88a76;
+    --bad-soft:#3a1d16;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", "Noto Sans SC", system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.7;
+  }
+  h1,h2,h3,h4{
+    font-family:"Source Serif 4","Noto Serif SC",Georgia,serif;
+    color:var(--ink);
+    text-wrap:balance;
+    margin:0;
+  }
+  code, pre, .mono, .eyebrow, .tag, .kbd{
+    font-family:"IBM Plex Mono","Noto Sans SC",monospace;
+  }
+  a{color:var(--accent-ink);}
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 272px minmax(0,1fr);
+    min-height:100vh;
+  }
+  .sidebar{
+    position:sticky; top:0; align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+    background:var(--surface);
+    padding:22px 18px 40px;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:4px;
+    padding-bottom:16px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .kicker{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+  .brand h1{ font-size:21px; line-height:1.25; }
+  .brand .sub{ font-size:12.5px; color:var(--ink-dim); }
+
+  nav.toc{ display:flex; flex-direction:column; gap:2px; }
+  nav.toc a{
+    display:flex; align-items:baseline; gap:9px;
+    padding:7px 9px; border-radius:7px;
+    text-decoration:none; color:var(--ink-dim);
+    font-size:13.5px;
+    border-left:2px solid transparent;
+  }
+  nav.toc a .num{
+    font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--ink-dim); min-width:20px;
+  }
+  nav.toc a:hover{ background:var(--surface-2); color:var(--ink); }
+  nav.toc a.active{
+    background:var(--accent-soft); color:var(--accent-ink);
+    border-left-color:var(--accent); font-weight:600;
+  }
+  nav.toc .group-label{
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-dim); opacity:.75;
+    margin:14px 9px 4px; font-weight:600;
+  }
+  nav.toc .group-label:first-child{ margin-top:2px; }
+
+  .menu-btn{
+    display:none; position:fixed; z-index:40; top:14px; left:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    width:40px; height:40px; align-items:center; justify-content:center;
+    box-shadow:var(--shadow); color:var(--ink);
+  }
+
+  main{ min-width:0; }
+  .content{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 28px 120px;
+  }
+
+  /* ---------- hero / cover ---------- */
+  .hero{
+    padding-bottom:38px; margin-bottom:44px;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .kicker{
+    font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .hero h1{ font-size:40px; line-height:1.15; margin-bottom:14px; }
+  .hero .dek{ font-size:17px; color:var(--ink-dim); max-width:60ch; }
+  .hero .meta{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin-top:22px; font-size:13px; color:var(--ink-dim);
+  }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- chapter chrome ---------- */
+  section.chapter{
+    padding-top:64px; margin-top:-8px;
+    scroll-margin-top:20px;
+  }
+  section.chapter:first-of-type{ padding-top:0; }
+  .ch-eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .ch-eyebrow .line{ height:1px; flex:1; background:var(--line); }
+  section.chapter h2{ font-size:29px; line-height:1.25; margin-bottom:8px; }
+  section.chapter .dek{ color:var(--ink-dim); font-size:15.5px; max-width:64ch; margin-bottom:28px; }
+
+  h3.subhead{
+    font-size:18px; margin:34px 0 12px;
+    padding-top:4px;
+  }
+  h3.subhead .n{ color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:14px; margin-right:8px; }
+
+  p{ margin:0 0 14px; max-width:66ch; }
+  ul.plain, ol.plain{ margin:0 0 16px; padding-left:1.3em; max-width:64ch; }
+  ul.plain li, ol.plain li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+  .accent-word{ color:var(--accent-ink); font-weight:600; }
+
+  /* ---------- code panel ---------- */
+  .code-panel{
+    background:var(--code-bg); color:var(--code-ink);
+    border-radius:11px; overflow:hidden;
+    margin:16px 0 22px; box-shadow:var(--shadow);
+  }
+  .code-panel .tab{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px; font-size:11.5px;
+    font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
+    color:#9fb3c8; background:rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel pre{
+    margin:0; padding:14px 16px 16px; overflow-x:auto;
+    font-size:12.8px; line-height:1.65;
+  }
+  .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
+  .tok-c{ color:#8592a6; } /* comment */
+  .tok-k{ color:#e8935a; } /* keyword */
+  .tok-s{ color:#8fc7a8; } /* string */
+  .tok-f{ color:#7fb5e8; } /* function/name */
+  .tok-n{ color:#e7ecf1; }
+
+  code.inline{
+    background:var(--surface-2); border:1px solid var(--line);
+    padding:1.5px 6px; border-radius:5px; font-size:.87em;
+  }
+
+  /* ---------- figures / diagrams ---------- */
+  figure.diagram{
+    margin:24px 0 26px; padding:18px 18px 14px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:13px; box-shadow:var(--shadow);
+  }
+  figure.diagram svg{ display:block; width:100%; height:auto; overflow:visible; }
+  figure.diagram figcaption{
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+  figure.diagram figcaption b{ color:var(--ink); }
+  .svg-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; fill:currentColor; }
+  .svg-title{ font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; font-weight:600; fill:currentColor; }
+  .svg-dim{ opacity:.62; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-radius:12px; padding:16px 18px; margin:20px 0;
+    border:1px solid var(--line); background:var(--surface);
+  }
+  .callout.takeaway{
+    background:var(--accent-soft); border-color:transparent;
+  }
+  .callout.takeaway .head{
+    display:flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:700; margin-bottom:10px;
+  }
+  .callout.takeaway ol{ margin:0; padding-left:1.2em; }
+  .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
+  .callout.note{ background:var(--accent2-soft); }
+  .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+
+  .pairgrid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin:18px 0;
+  }
+  .pairgrid .card{
+    border:1px solid var(--line); border-radius:11px; padding:13px 15px;
+    background:var(--surface);
+  }
+  .pairgrid .card h4{ font-size:13.5px; margin-bottom:6px; font-family:"IBM Plex Sans"; }
+  .pairgrid .card p{ font-size:13px; color:var(--ink-dim); margin:0; }
+  @media (max-width:640px){ .pairgrid{ grid-template-columns:1fr; } }
+
+  table.reftable{
+    width:100%; border-collapse:collapse; margin:16px 0 22px;
+    font-size:13.5px;
+  }
+  table.reftable th{
+    text-align:left; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim);
+    padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  table.reftable td{
+    padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top;
+  }
+  table.reftable tr:last-child td{ border-bottom:none; }
+  table.reftable code{ font-size:12px; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:2.5px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+    font-family:"IBM Plex Mono",monospace; white-space:nowrap;
+  }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.bad{ background:var(--bad-soft); color:var(--bad); }
+  .pill::before{ content:"●"; font-size:8px; }
+
+  .chapfoot{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:46px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  footer.end{
+    margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:78vw; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease;
+      z-index:50; box-shadow:var(--shadow);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .menu-btn{ display:flex; }
+    .content{ padding-top:76px; }
+    .overlay{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:45;
+    }
+    .overlay.show{ display:block; }
+    .pairgrid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="menu-btn" id="menuBtn" role="button" aria-label="打开目录" tabindex="0">
+  <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="菜单"><line x1="1" y1="4" x2="17" y2="4" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.6"/></svg>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="kicker">Build an AI Agent · 学习指南</span>
+      <h1>从零构建 AI Agent</h1>
+      <span class="sub">10 章代码精读 · 图解版 · 面向初学者</span>
+    </div>
+    <nav class="toc" id="toc">
+      <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <div class="group-label">Part 1 · 搭建第一个 Agent</div>
+      <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
+      <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
+      <a href="ch03_工具与FunctionCalling.html"><span class="num">03</span>工具调用</a>
+      <a href="ch04_构建ReAct_Agent.html"><span class="num">04</span>ReAct Agent</a>
+      <div class="group-label">Part 2 · 进阶能力</div>
+      <a class="active" href="ch05_RAG与文件工具.html"><span class="num">05</span>RAG 与文件工具</a>
+      <a href="ch06_记忆系统.html"><span class="num">06</span>记忆系统</a>
+      <a href="ch07_规划与反思.html"><span class="num">07</span>规划与反思</a>
+      <a href="ch08_代码执行.html"><span class="num">08</span>代码执行</a>
+      <a href="ch09_多智能体系统.html"><span class="num">09</span>多智能体系统</a>
+      <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
+      <div class="group-label">附录</div>
+      <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="content">
+
+<section id="ch5" class="chapter">
+        <div class="ch-eyebrow"><span>Chapter 05</span><span class="line"></span><span>scratch_agents/{rag,callbacks}.py</span></div>
+        <h2>用 RAG 构建知识库，接入文件工具</h2>
+        <p class="dek">第 4 章的 Agent 面对两类数据仍然瞎：模型没见过的私有数据，和塞不进上下文的海量数据。本章给出两把钥匙——向量检索和结构化探索——最后用回调机制把它们优雅地挂进 Agent。</p>
+
+        <h3 class="subhead"><span class="n">5.1</span>RAG 三件套</h3>
+        <figure class="diagram">
+          <svg viewBox="0 0 700 170" role="img" aria-label="RAG流程：原始文本经过切块变成小片段，每个片段生成向量嵌入存入向量库，查询时计算相似度取回最相关的少数片段">
+            <defs><marker id="ar6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/></marker></defs>
+            <g>
+              <rect x="8" y="52" width="110" height="60" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <text x="63" y="78" text-anchor="middle" class="svg-title">原始文本</text>
+              <text x="63" y="96" text-anchor="middle" class="svg-label svg-dim">几十万字符</text>
+            </g>
+            <line x1="118" y1="82" x2="150" y2="82" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar6)"/>
+            <g>
+              <rect x="154" y="52" width="110" height="60" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <text x="209" y="74" text-anchor="middle" class="svg-title">Chunking</text>
+              <text x="209" y="92" text-anchor="middle" class="svg-label svg-dim">固定长度 + overlap</text>
+              <text x="209" y="106" text-anchor="middle" class="svg-label svg-dim">切成小片段</text>
+            </g>
+            <line x1="264" y1="82" x2="296" y2="82" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar6)"/>
+            <g>
+              <rect x="300" y="52" width="110" height="60" rx="10" fill="var(--accent-soft)" stroke="none"/>
+              <text x="355" y="74" text-anchor="middle" class="svg-title" fill="var(--accent-ink)">Embedding</text>
+              <text x="355" y="92" text-anchor="middle" class="svg-label svg-dim">文本 → 向量</text>
+              <text x="355" y="106" text-anchor="middle" class="svg-label svg-dim">语义相近则夹角小</text>
+            </g>
+            <line x1="410" y1="82" x2="442" y2="82" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar6)"/>
+            <g>
+              <rect x="446" y="24" width="118" height="116" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <text x="505" y="46" text-anchor="middle" class="svg-title">向量库</text>
+              <circle cx="480" cy="70" r="4" fill="currentColor" opacity=".5"/>
+              <circle cx="500" cy="90" r="4" fill="currentColor" opacity=".5"/>
+              <circle cx="530" cy="66" r="4" fill="currentColor" opacity=".5"/>
+              <circle cx="540" cy="108" r="4" fill="currentColor" opacity=".5"/>
+              <circle cx="470" cy="112" r="4" fill="currentColor" opacity=".5"/>
+              <text x="505" y="132" text-anchor="middle" class="svg-label svg-dim">chunk 向量集合</text>
+            </g>
+            <line x1="564" y1="82" x2="596" y2="82" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar6)"/>
+            <g>
+              <rect x="600" y="52" width="94" height="60" rx="10" fill="var(--accent2-soft)" stroke="none"/>
+              <text x="647" y="74" text-anchor="middle" class="svg-title" fill="var(--accent2)">Top-K 检索</text>
+              <text x="647" y="92" text-anchor="middle" class="svg-label svg-dim">余弦相似度</text>
+              <text x="647" y="106" text-anchor="middle" class="svg-label svg-dim">最相关的 3 条</text>
+            </g>
+            <text x="350" y="150" text-anchor="middle" class="svg-label svg-dim">十几万 token 的搜索结果 → 压缩 90%+ 后送进上下文</text>
+          </svg>
+          <figcaption><b>图 5.1</b> — 本书对 RAG 的独特定位：第一个应用场景不是"知识库问答"，而是把 Tavily 搜索返回的十几万 token 网页全文，压缩成与当前问题真正相关的一小撮片段。RAG 的本质是<strong>信息过滤</strong>，知识库问答只是它的应用之一。</figcaption>
+        </figure>
+        <p><strong>关键认知</strong>：embedding 捕捉的是语义而不是字面——"cat" 和 "kitten" 没有一个共同字母，但向量空间里是邻居。切块要留 <strong>overlap</strong>，否则一句话正好被切断在边界上，两个块各拿半句都检索不到。</p>
+
+        <h3 class="subhead"><span class="n">5.2</span>结构化检索：文件系统工具</h3>
+        <p>GAIA 有一批带附件（zip / xlsx / png / mp3 / pdf）的题，纯文本 Agent 零分。数据有天然结构（目录树），导航式探索比向量检索更合适。四个工具全部体现"输出为 LLM 消费而设计"：<code class="inline">unzip_file</code> 解压后返回文件清单摘要；<code class="inline">list_files</code> 目录在前文件在后；<code class="inline">read_file</code> 按扩展名分派、文本带行号、表格转 markdown；<code class="inline">read_media_file</code> 内部再调一次多模态 LLM 处理图像/音频/PDF——主 Agent 不看像素，只拿子模型的文字结论，这是"LLM 在工具里"的委托模式，第 9 章的 Agent-as-Tool 是它的推广。</p>
+
+        <h3 class="subhead"><span class="n">5.3</span>回调机制：不改内核的扩展点</h3>
+        <figure class="diagram">
+          <svg viewBox="0 0 660 190" role="img" aria-label="回调机制：工具执行前的before回调可以拦截并直接返回结果，正常情况下真实执行工具，执行后的after回调可以改写结果，两者返回None都代表放行" >
+            <defs><marker id="ar7" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/></marker></defs>
+            <rect x="8" y="60" width="130" height="66" rx="10" fill="var(--accent-soft)" stroke="none"/>
+            <text x="73" y="84" text-anchor="middle" class="svg-title" fill="var(--accent-ink)">before 回调</text>
+            <text x="73" y="102" text-anchor="middle" class="svg-label svg-dim">审批 / 拦截</text>
+            <text x="73" y="116" text-anchor="middle" class="svg-label svg-dim">None=放行</text>
+            <line x1="138" y1="93" x2="212" y2="93" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar7)"/>
+            <rect x="216" y="60" width="130" height="66" rx="10" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <text x="281" y="88" text-anchor="middle" class="svg-title">真实执行</text>
+            <text x="281" y="106" text-anchor="middle" class="svg-label svg-dim">调用工具函数</text>
+            <line x1="346" y1="93" x2="420" y2="93" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar7)"/>
+            <rect x="424" y="60" width="130" height="66" rx="10" fill="var(--accent2-soft)" stroke="none"/>
+            <text x="489" y="84" text-anchor="middle" class="svg-title" fill="var(--accent2)">after 回调</text>
+            <text x="489" y="102" text-anchor="middle" class="svg-label svg-dim">压缩 / 改写</text>
+            <text x="489" y="116" text-anchor="middle" class="svg-label svg-dim">None=原样</text>
+            <line x1="554" y1="93" x2="620" y2="93" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar7)"/>
+            <text x="620" y="88" text-anchor="middle" class="svg-label svg-dim">写回</text>
+            <text x="620" y="102" text-anchor="middle" class="svg-label svg-dim">events</text>
+            <text x="330" y="34" text-anchor="middle" class="svg-label svg-dim">协议只有一条：返回 None = 不干预，返回值 = 接管</text>
+            <path d="M73,60 C60,30 90,20 130,26" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#ar7)"/>
+            <text x="100" y="18" text-anchor="middle" class="svg-label svg-dim">直接返回结果→跳过执行</text>
+          </svg>
+          <figcaption><b>图 5.2</b> — <code class="inline">act()</code> 被重构成三段：before 回调（可拦截，比如人工审批危险操作）→ 真实执行（仅当没被拦截）→ after 回调（可改写，比如把过长的搜索结果向量压缩后再放回历史）。同一协议支持多个回调自由插拔，互不知晓。</figcaption>
+        </figure>
+
+        <div class="callout takeaway">
+          <div class="head">本章要带走的几句话</div>
+          <ol>
+            <li>RAG 三件套：embedding（语义→向量）→ chunking（固定长度+overlap）→ 余弦 top-k 检索；本质是信息过滤，不只是知识库。</li>
+            <li>本书 RAG 的第一用途是压缩工具输出，知识库问答反而是次要场景。</li>
+            <li>文件工具的设计准则：输出为 LLM 消费而格式化；路径等系统信息由代码注入，不让模型猜。</li>
+            <li><code class="inline">read_media_file</code> 展示"工具里再调一个 LLM"的委托模式，第 9 章会把它推广到整个 Agent。</li>
+            <li>回调 = Agent 的中间件：before 可拦截，after 可改写，<code class="inline">None</code> 即放行——不改内核就能加横切能力。</li>
+          </ol>
+        </div>
+        
+      </section>
+
+<div class="chapfoot"><a href="ch04_构建ReAct_Agent.html">&larr; ReAct Agent</a><a href="ch06_记忆系统.html">记忆系统 &rarr;</a></div>
+
+      <footer class="end">
+        本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var sidebar = document.getElementById('sidebar');
+  var menuBtn = document.getElementById('menuBtn');
+  var overlay = document.getElementById('overlay');
+  function closeMenu(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  function toggleMenu(){ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); }
+  menuBtn.addEventListener('click', toggleMenu);
+  menuBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleMenu(); }});
+  overlay.addEventListener('click', closeMenu);
+  document.querySelectorAll('nav.toc a').forEach(function(a){
+    a.addEventListener('click', function(){ closeMenu(); });
+  });
+})();
+</script>
+</body>
+</html>

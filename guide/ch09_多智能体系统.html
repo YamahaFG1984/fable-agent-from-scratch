@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第09章 · 多智能体系统 — 从零构建 AI Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1ef;
+    --surface:#ffffff;
+    --surface-2:#e6e9e5;
+    --ink:#1a2233;
+    --ink-dim:#4b5566;
+    --line:#d5d9d2;
+    --accent:#b5551f;
+    --accent-ink:#7a3a12;
+    --accent-soft:#f3e3d6;
+    --accent2:#276b64;
+    --accent2-soft:#dcece9;
+    --code-bg:#1a2233;
+    --code-ink:#e7ecef;
+    --code-accent:#e8935a;
+    --good:#2f7a4f;
+    --good-soft:#dcefe1;
+    --warn:#a5730b;
+    --warn-soft:#f6ecd6;
+    --bad:#a5341f;
+    --bad-soft:#f6ddd6;
+    --shadow: 0 1px 2px rgba(20,26,20,.06), 0 8px 24px -12px rgba(20,26,20,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171e28;
+      --surface-2:#1d2530;
+      --ink:#e7ecf1;
+      --ink-dim:#a7b1c0;
+      --line:#2a323d;
+      --accent:#e8935a;
+      --accent-ink:#f4b384;
+      --accent-soft:#3a2a1e;
+      --accent2:#5fc1b6;
+      --accent2-soft:#173330;
+      --code-bg:#0c1016;
+      --code-ink:#e7ecf1;
+      --code-accent:#e8935a;
+      --good:#5fd08a;
+      --good-soft:#123423;
+      --warn:#e0b34f;
+      --warn-soft:#3a2e12;
+      --bad:#e88a76;
+      --bad-soft:#3a1d16;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171e28;
+    --surface-2:#1d2530;
+    --ink:#e7ecf1;
+    --ink-dim:#a7b1c0;
+    --line:#2a323d;
+    --accent:#e8935a;
+    --accent-ink:#f4b384;
+    --accent-soft:#3a2a1e;
+    --accent2:#5fc1b6;
+    --accent2-soft:#173330;
+    --code-bg:#0c1016;
+    --code-ink:#e7ecf1;
+    --code-accent:#e8935a;
+    --good:#5fd08a;
+    --good-soft:#123423;
+    --warn:#e0b34f;
+    --warn-soft:#3a2e12;
+    --bad:#e88a76;
+    --bad-soft:#3a1d16;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", "Noto Sans SC", system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.7;
+  }
+  h1,h2,h3,h4{
+    font-family:"Source Serif 4","Noto Serif SC",Georgia,serif;
+    color:var(--ink);
+    text-wrap:balance;
+    margin:0;
+  }
+  code, pre, .mono, .eyebrow, .tag, .kbd{
+    font-family:"IBM Plex Mono","Noto Sans SC",monospace;
+  }
+  a{color:var(--accent-ink);}
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 272px minmax(0,1fr);
+    min-height:100vh;
+  }
+  .sidebar{
+    position:sticky; top:0; align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+    background:var(--surface);
+    padding:22px 18px 40px;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:4px;
+    padding-bottom:16px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .kicker{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+  .brand h1{ font-size:21px; line-height:1.25; }
+  .brand .sub{ font-size:12.5px; color:var(--ink-dim); }
+
+  nav.toc{ display:flex; flex-direction:column; gap:2px; }
+  nav.toc a{
+    display:flex; align-items:baseline; gap:9px;
+    padding:7px 9px; border-radius:7px;
+    text-decoration:none; color:var(--ink-dim);
+    font-size:13.5px;
+    border-left:2px solid transparent;
+  }
+  nav.toc a .num{
+    font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--ink-dim); min-width:20px;
+  }
+  nav.toc a:hover{ background:var(--surface-2); color:var(--ink); }
+  nav.toc a.active{
+    background:var(--accent-soft); color:var(--accent-ink);
+    border-left-color:var(--accent); font-weight:600;
+  }
+  nav.toc .group-label{
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-dim); opacity:.75;
+    margin:14px 9px 4px; font-weight:600;
+  }
+  nav.toc .group-label:first-child{ margin-top:2px; }
+
+  .menu-btn{
+    display:none; position:fixed; z-index:40; top:14px; left:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    width:40px; height:40px; align-items:center; justify-content:center;
+    box-shadow:var(--shadow); color:var(--ink);
+  }
+
+  main{ min-width:0; }
+  .content{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 28px 120px;
+  }
+
+  /* ---------- hero / cover ---------- */
+  .hero{
+    padding-bottom:38px; margin-bottom:44px;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .kicker{
+    font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .hero h1{ font-size:40px; line-height:1.15; margin-bottom:14px; }
+  .hero .dek{ font-size:17px; color:var(--ink-dim); max-width:60ch; }
+  .hero .meta{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin-top:22px; font-size:13px; color:var(--ink-dim);
+  }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- chapter chrome ---------- */
+  section.chapter{
+    padding-top:64px; margin-top:-8px;
+    scroll-margin-top:20px;
+  }
+  section.chapter:first-of-type{ padding-top:0; }
+  .ch-eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .ch-eyebrow .line{ height:1px; flex:1; background:var(--line); }
+  section.chapter h2{ font-size:29px; line-height:1.25; margin-bottom:8px; }
+  section.chapter .dek{ color:var(--ink-dim); font-size:15.5px; max-width:64ch; margin-bottom:28px; }
+
+  h3.subhead{
+    font-size:18px; margin:34px 0 12px;
+    padding-top:4px;
+  }
+  h3.subhead .n{ color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:14px; margin-right:8px; }
+
+  p{ margin:0 0 14px; max-width:66ch; }
+  ul.plain, ol.plain{ margin:0 0 16px; padding-left:1.3em; max-width:64ch; }
+  ul.plain li, ol.plain li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+  .accent-word{ color:var(--accent-ink); font-weight:600; }
+
+  /* ---------- code panel ---------- */
+  .code-panel{
+    background:var(--code-bg); color:var(--code-ink);
+    border-radius:11px; overflow:hidden;
+    margin:16px 0 22px; box-shadow:var(--shadow);
+  }
+  .code-panel .tab{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px; font-size:11.5px;
+    font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
+    color:#9fb3c8; background:rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel pre{
+    margin:0; padding:14px 16px 16px; overflow-x:auto;
+    font-size:12.8px; line-height:1.65;
+  }
+  .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
+  .tok-c{ color:#8592a6; } /* comment */
+  .tok-k{ color:#e8935a; } /* keyword */
+  .tok-s{ color:#8fc7a8; } /* string */
+  .tok-f{ color:#7fb5e8; } /* function/name */
+  .tok-n{ color:#e7ecf1; }
+
+  code.inline{
+    background:var(--surface-2); border:1px solid var(--line);
+    padding:1.5px 6px; border-radius:5px; font-size:.87em;
+  }
+
+  /* ---------- figures / diagrams ---------- */
+  figure.diagram{
+    margin:24px 0 26px; padding:18px 18px 14px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:13px; box-shadow:var(--shadow);
+  }
+  figure.diagram svg{ display:block; width:100%; height:auto; overflow:visible; }
+  figure.diagram figcaption{
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+  figure.diagram figcaption b{ color:var(--ink); }
+  .svg-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; fill:currentColor; }
+  .svg-title{ font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; font-weight:600; fill:currentColor; }
+  .svg-dim{ opacity:.62; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-radius:12px; padding:16px 18px; margin:20px 0;
+    border:1px solid var(--line); background:var(--surface);
+  }
+  .callout.takeaway{
+    background:var(--accent-soft); border-color:transparent;
+  }
+  .callout.takeaway .head{
+    display:flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:700; margin-bottom:10px;
+  }
+  .callout.takeaway ol{ margin:0; padding-left:1.2em; }
+  .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
+  .callout.note{ background:var(--accent2-soft); }
+  .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+
+  .pairgrid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin:18px 0;
+  }
+  .pairgrid .card{
+    border:1px solid var(--line); border-radius:11px; padding:13px 15px;
+    background:var(--surface);
+  }
+  .pairgrid .card h4{ font-size:13.5px; margin-bottom:6px; font-family:"IBM Plex Sans"; }
+  .pairgrid .card p{ font-size:13px; color:var(--ink-dim); margin:0; }
+  @media (max-width:640px){ .pairgrid{ grid-template-columns:1fr; } }
+
+  table.reftable{
+    width:100%; border-collapse:collapse; margin:16px 0 22px;
+    font-size:13.5px;
+  }
+  table.reftable th{
+    text-align:left; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim);
+    padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  table.reftable td{
+    padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top;
+  }
+  table.reftable tr:last-child td{ border-bottom:none; }
+  table.reftable code{ font-size:12px; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:2.5px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+    font-family:"IBM Plex Mono",monospace; white-space:nowrap;
+  }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.bad{ background:var(--bad-soft); color:var(--bad); }
+  .pill::before{ content:"●"; font-size:8px; }
+
+  .chapfoot{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:46px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  footer.end{
+    margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:78vw; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease;
+      z-index:50; box-shadow:var(--shadow);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .menu-btn{ display:flex; }
+    .content{ padding-top:76px; }
+    .overlay{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:45;
+    }
+    .overlay.show{ display:block; }
+    .pairgrid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="menu-btn" id="menuBtn" role="button" aria-label="打开目录" tabindex="0">
+  <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="菜单"><line x1="1" y1="4" x2="17" y2="4" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.6"/></svg>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="kicker">Build an AI Agent · 学习指南</span>
+      <h1>从零构建 AI Agent</h1>
+      <span class="sub">10 章代码精读 · 图解版 · 面向初学者</span>
+    </div>
+    <nav class="toc" id="toc">
+      <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <div class="group-label">Part 1 · 搭建第一个 Agent</div>
+      <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
+      <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
+      <a href="ch03_工具与FunctionCalling.html"><span class="num">03</span>工具调用</a>
+      <a href="ch04_构建ReAct_Agent.html"><span class="num">04</span>ReAct Agent</a>
+      <div class="group-label">Part 2 · 进阶能力</div>
+      <a href="ch05_RAG与文件工具.html"><span class="num">05</span>RAG 与文件工具</a>
+      <a href="ch06_记忆系统.html"><span class="num">06</span>记忆系统</a>
+      <a href="ch07_规划与反思.html"><span class="num">07</span>规划与反思</a>
+      <a href="ch08_代码执行.html"><span class="num">08</span>代码执行</a>
+      <a class="active" href="ch09_多智能体系统.html"><span class="num">09</span>多智能体系统</a>
+      <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
+      <div class="group-label">附录</div>
+      <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="content">
+
+<section id="ch9" class="chapter">
+        <div class="ch-eyebrow"><span>Chapter 09</span><span class="line"></span><span>scratch_agents/{workflows,transfer,remote}.py</span></div>
+        <h2>编排多智能体系统</h2>
+        <p class="dek">单个 Agent 什么都干会撞上三堵墙：工具太多、指令冲突、上下文互相污染。解法和人类组织一样——专业分工。问题变成：分工后怎么协作？</p>
+
+        <h3 class="subhead"><span class="n">9.1</span>三种协作模式：谁拿着"话筒"</h3>
+        <figure class="diagram">
+          <svg viewBox="0 0 700 280" role="img" aria-label="三种协作模式对比：Workflow中多个Agent共享同一个context由代码决定顺序；Agent as Tool中调用方开启一个隔离的新context给子Agent，只拿回最终输出，控制权始终留在调用方；Transfer中整个context连同控制权一起移交给下一个Agent，不再返回">
+            <defs><marker id="ar13" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/></marker></defs>
+
+            <!-- Workflow -->
+            <text x="10" y="18" class="svg-title">Workflow</text>
+            <text x="10" y="34" class="svg-label svg-dim">代码定顺序 · 共享 context</text>
+            <rect x="10" y="46" width="205" height="34" rx="8" fill="var(--surface)" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3"/>
+            <text x="112" y="67" text-anchor="middle" class="svg-label svg-dim">同一个 context</text>
+            <rect x="16" y="52" width="52" height="22" rx="5" fill="var(--accent-soft)" stroke="none"/><text x="42" y="67" text-anchor="middle" class="svg-label" font-size="10">A</text>
+            <line x1="68" y1="63" x2="90" y2="63" stroke="currentColor" marker-end="url(#ar13)"/>
+            <rect x="94" y="52" width="52" height="22" rx="5" fill="var(--accent-soft)" stroke="none"/><text x="120" y="67" text-anchor="middle" class="svg-label" font-size="10">B</text>
+            <line x1="146" y1="63" x2="168" y2="63" stroke="currentColor" marker-end="url(#ar13)"/>
+            <rect x="150" y="52" width="52" height="22" rx="5" fill="var(--accent-soft)" stroke="none"/><text x="176" y="67" text-anchor="middle" class="svg-label" font-size="10">C</text>
+            <text x="112" y="102" text-anchor="middle" class="svg-label svg-dim">类比：流水线</text>
+
+            <line x1="238" y1="0" x2="238" y2="270" stroke="var(--line)" stroke-dasharray="2 4"/>
+
+            <!-- Agent as tool -->
+            <text x="256" y="18" class="svg-title" fill="var(--accent-ink)">Agent as Tool</text>
+            <text x="256" y="34" class="svg-label svg-dim">咨询后收回控制</text>
+            <rect x="256" y="46" width="80" height="30" rx="7" fill="var(--accent-soft)" stroke="none"/>
+            <text x="296" y="65" text-anchor="middle" class="svg-label" font-size="10">调用方</text>
+            <path d="M336,54 C368,44 390,44 410,54" fill="none" stroke="currentColor" stroke-width="1.1" marker-end="url(#ar13)"/>
+            <text x="373" y="42" text-anchor="middle" class="svg-label svg-dim" font-size="9">request</text>
+            <rect x="414" y="42" width="90" height="66" rx="8" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <text x="459" y="60" text-anchor="middle" class="svg-label svg-dim" font-size="9">新 context</text>
+            <text x="459" y="78" text-anchor="middle" class="svg-label svg-dim" font-size="9">(隔离)</text>
+            <rect x="428" y="82" width="62" height="20" rx="5" fill="var(--accent-soft)" stroke="none"/>
+            <text x="459" y="96" text-anchor="middle" class="svg-label" font-size="9">子 Agent</text>
+            <path d="M414,72 C390,90 368,90 340,78" fill="none" stroke="var(--accent2)" stroke-width="1.2" marker-end="url(#ar13)"/>
+            <text x="373" y="106" text-anchor="middle" class="svg-label" fill="var(--accent2)" font-size="9">只回结论</text>
+            <text x="380" y="128" text-anchor="middle" class="svg-label svg-dim">类比：打电话问专家</text>
+
+            <line x1="530" y1="0" x2="530" y2="270" stroke="var(--line)" stroke-dasharray="2 4"/>
+
+            <!-- Transfer -->
+            <text x="548" y="18" class="svg-title" fill="var(--accent2)">Transfer</text>
+            <text x="548" y="34" class="svg-label svg-dim">整体移交 · 不回头</text>
+            <rect x="548" y="46" width="70" height="30" rx="7" fill="var(--accent2-soft)" stroke="none"/>
+            <text x="583" y="65" text-anchor="middle" class="svg-label" font-size="10">Agent A</text>
+            <path d="M618,58 C630,58 638,58 648,58" fill="none" stroke="var(--accent2)" stroke-width="1.4" marker-end="url(#ar13)"/>
+            <rect x="608" y="46" width="80" height="30" rx="7" fill="none" stroke="var(--accent2)" stroke-width="1.2" stroke-dasharray="3 3" opacity=".01"/>
+            <rect x="646" y="46" width="48" height="30" rx="7" fill="var(--accent2-soft)" stroke="none"/>
+            <text x="670" y="65" text-anchor="middle" class="svg-label" font-size="10">B</text>
+            <text x="583" y="98" text-anchor="middle" class="svg-label svg-dim" font-size="9">整个 context</text>
+            <text x="583" y="112" text-anchor="middle" class="svg-label svg-dim" font-size="9">连同控制权一起带走</text>
+            <text x="600" y="140" text-anchor="middle" class="svg-label svg-dim">类比：客服转接</text>
+
+            <text x="112" y="230" text-anchor="middle" class="svg-label svg-dim">共享 context</text>
+            <text x="380" y="230" text-anchor="middle" class="svg-label svg-dim">隔离 context</text>
+            <text x="600" y="230" text-anchor="middle" class="svg-label svg-dim">context 转移</text>
+          </svg>
+          <figcaption><b>图 9.1</b> — 三种模式的核心差异在"谁拿着上下文和控制权"：Workflow 里代码写死顺序、大家共用一个 context；Agent-as-Tool 让子 Agent 在全新隔离的 context 里独立运行，调用方只拿回一句结论；Transfer 把整个 context（含全部历史）连同控制权一次性移交给下一个 Agent，不再返回。</figcaption>
+        </figure>
+
+        <h3 class="subhead"><span class="n">9.2</span>Workflow：三种继承 Agent 的编排器</h3>
+        <p><code class="inline">SequentialWorkflow</code>、<code class="inline">ParallelWorkflow</code>、<code class="inline">LoopWorkflow</code> 全部<strong>继承 Agent</strong>——它们不调 LLM、不用工具，只覆写 <code class="inline">run()</code>。继承的意义是组合律：Workflow 拥有和 Agent 一样的 <code class="inline">run()</code> 签名，所以能嵌套、能被包装成工具、能当子 Agent，整个体系因此闭合。Sequential 换棒时有两个必须记住的细节：<strong>每棒之前要重置 <code class="inline">final_result</code> 和 <code class="inline">current_step</code></strong>（否则下一个 Agent 的循环一步都不会跑），且<strong>只有第一个 Agent 收到 user_input</strong>，后面的 Agent 靠打开共享 context 看到全部历史。</p>
+
+        <h3 class="subhead"><span class="n">9.3</span>Transfer：路由菜单 + 树形结构</h3>
+        <p>Agent 组成一棵树（<code class="inline">sub_agents</code> / <code class="inline">parent</code>），<code class="inline">transfer_to_agent</code> 工具的参数被加上 <code class="inline">enum</code> 约束——模型只能从合法的 Agent 名单里选，堵死幻觉出一个不存在的名字。工具本身<strong>只设一个标志位</strong>（<code class="inline">context.transfer_to = agent_name</code>），真正的移交动作发生在 <code class="inline">run()</code> 循环层面：检测到标志后把整个 <code class="inline">context</code> 传给目标 Agent 的 <code class="inline">run()</code>，当前 Agent 退出循环。</p>
+
+        <h3 class="subhead"><span class="n">9.4</span>A2A：跨网络的 Agent 协作</h3>
+        <p>前面的模式都要求 Agent 在同一进程里。<strong>A2A（Agent2Agent）协议</strong>把协作扩展到网络：约定 <code class="inline">/.well-known/agent.json</code> 做服务发现（返回名字、描述、能力），再用 JSON-RPC 的 <code class="inline">/tasks/send</code> 发起调用。关键设计是 <code class="inline">RemoteAgent.run()</code> 的签名和本地 Agent 完全一致——调用方感知不到对方是本地对象还是网络另一端的服务，这是"MCP 让远程工具和本地函数无差别"的思想在 Agent 层的复刻。</p>
+
+        <div class="callout takeaway">
+          <div class="head">本章要带走的几句话</div>
+          <ol>
+            <li>单 Agent 的三堵墙——工具过多、指令冲突、上下文污染——解法是专业分工 + 三种协作模式。</li>
+            <li>Workflow 代码定流程（共享 context）；Agent-as-Tool 咨询后收回控制（隔离 context）；Transfer 移交控制权（context 一起带走）。</li>
+            <li>Workflow 继承 Agent 是为了组合律：可嵌套、可被包装成工具、可当子 Agent。</li>
+            <li>Transfer 的工程细节全是防错设计：名字唯一、enum 锁死目标名单、工具只设标志而移交在 run() 层执行。</li>
+            <li>A2A 用 Agent Card + JSON-RPC 把协作扩展到跨网络，<code class="inline">RemoteAgent.run()</code> 与本地签名一致。</li>
+          </ol>
+        </div>
+        
+      </section>
+
+<div class="chapfoot"><a href="ch08_代码执行.html">&larr; 代码执行</a><a href="ch10_评估与监控.html">评估与监控 &rarr;</a></div>
+
+      <footer class="end">
+        本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var sidebar = document.getElementById('sidebar');
+  var menuBtn = document.getElementById('menuBtn');
+  var overlay = document.getElementById('overlay');
+  function closeMenu(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  function toggleMenu(){ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); }
+  menuBtn.addEventListener('click', toggleMenu);
+  menuBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleMenu(); }});
+  overlay.addEventListener('click', closeMenu);
+  document.querySelectorAll('nav.toc a').forEach(function(a){
+    a.addEventListener('click', function(){ closeMenu(); });
+  });
+})();
+</script>
+</body>
+</html>

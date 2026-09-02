@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第01章 · 什么是 AI Agent — 从零构建 AI Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1ef;
+    --surface:#ffffff;
+    --surface-2:#e6e9e5;
+    --ink:#1a2233;
+    --ink-dim:#4b5566;
+    --line:#d5d9d2;
+    --accent:#b5551f;
+    --accent-ink:#7a3a12;
+    --accent-soft:#f3e3d6;
+    --accent2:#276b64;
+    --accent2-soft:#dcece9;
+    --code-bg:#1a2233;
+    --code-ink:#e7ecef;
+    --code-accent:#e8935a;
+    --good:#2f7a4f;
+    --good-soft:#dcefe1;
+    --warn:#a5730b;
+    --warn-soft:#f6ecd6;
+    --bad:#a5341f;
+    --bad-soft:#f6ddd6;
+    --shadow: 0 1px 2px rgba(20,26,20,.06), 0 8px 24px -12px rgba(20,26,20,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171e28;
+      --surface-2:#1d2530;
+      --ink:#e7ecf1;
+      --ink-dim:#a7b1c0;
+      --line:#2a323d;
+      --accent:#e8935a;
+      --accent-ink:#f4b384;
+      --accent-soft:#3a2a1e;
+      --accent2:#5fc1b6;
+      --accent2-soft:#173330;
+      --code-bg:#0c1016;
+      --code-ink:#e7ecf1;
+      --code-accent:#e8935a;
+      --good:#5fd08a;
+      --good-soft:#123423;
+      --warn:#e0b34f;
+      --warn-soft:#3a2e12;
+      --bad:#e88a76;
+      --bad-soft:#3a1d16;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171e28;
+    --surface-2:#1d2530;
+    --ink:#e7ecf1;
+    --ink-dim:#a7b1c0;
+    --line:#2a323d;
+    --accent:#e8935a;
+    --accent-ink:#f4b384;
+    --accent-soft:#3a2a1e;
+    --accent2:#5fc1b6;
+    --accent2-soft:#173330;
+    --code-bg:#0c1016;
+    --code-ink:#e7ecf1;
+    --code-accent:#e8935a;
+    --good:#5fd08a;
+    --good-soft:#123423;
+    --warn:#e0b34f;
+    --warn-soft:#3a2e12;
+    --bad:#e88a76;
+    --bad-soft:#3a1d16;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", "Noto Sans SC", system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.7;
+  }
+  h1,h2,h3,h4{
+    font-family:"Source Serif 4","Noto Serif SC",Georgia,serif;
+    color:var(--ink);
+    text-wrap:balance;
+    margin:0;
+  }
+  code, pre, .mono, .eyebrow, .tag, .kbd{
+    font-family:"IBM Plex Mono","Noto Sans SC",monospace;
+  }
+  a{color:var(--accent-ink);}
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 272px minmax(0,1fr);
+    min-height:100vh;
+  }
+  .sidebar{
+    position:sticky; top:0; align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+    background:var(--surface);
+    padding:22px 18px 40px;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:4px;
+    padding-bottom:16px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .kicker{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+  .brand h1{ font-size:21px; line-height:1.25; }
+  .brand .sub{ font-size:12.5px; color:var(--ink-dim); }
+
+  nav.toc{ display:flex; flex-direction:column; gap:2px; }
+  nav.toc a{
+    display:flex; align-items:baseline; gap:9px;
+    padding:7px 9px; border-radius:7px;
+    text-decoration:none; color:var(--ink-dim);
+    font-size:13.5px;
+    border-left:2px solid transparent;
+  }
+  nav.toc a .num{
+    font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--ink-dim); min-width:20px;
+  }
+  nav.toc a:hover{ background:var(--surface-2); color:var(--ink); }
+  nav.toc a.active{
+    background:var(--accent-soft); color:var(--accent-ink);
+    border-left-color:var(--accent); font-weight:600;
+  }
+  nav.toc .group-label{
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-dim); opacity:.75;
+    margin:14px 9px 4px; font-weight:600;
+  }
+  nav.toc .group-label:first-child{ margin-top:2px; }
+
+  .menu-btn{
+    display:none; position:fixed; z-index:40; top:14px; left:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    width:40px; height:40px; align-items:center; justify-content:center;
+    box-shadow:var(--shadow); color:var(--ink);
+  }
+
+  main{ min-width:0; }
+  .content{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 28px 120px;
+  }
+
+  /* ---------- hero / cover ---------- */
+  .hero{
+    padding-bottom:38px; margin-bottom:44px;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .kicker{
+    font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .hero h1{ font-size:40px; line-height:1.15; margin-bottom:14px; }
+  .hero .dek{ font-size:17px; color:var(--ink-dim); max-width:60ch; }
+  .hero .meta{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin-top:22px; font-size:13px; color:var(--ink-dim);
+  }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- chapter chrome ---------- */
+  section.chapter{
+    padding-top:64px; margin-top:-8px;
+    scroll-margin-top:20px;
+  }
+  section.chapter:first-of-type{ padding-top:0; }
+  .ch-eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .ch-eyebrow .line{ height:1px; flex:1; background:var(--line); }
+  section.chapter h2{ font-size:29px; line-height:1.25; margin-bottom:8px; }
+  section.chapter .dek{ color:var(--ink-dim); font-size:15.5px; max-width:64ch; margin-bottom:28px; }
+
+  h3.subhead{
+    font-size:18px; margin:34px 0 12px;
+    padding-top:4px;
+  }
+  h3.subhead .n{ color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:14px; margin-right:8px; }
+
+  p{ margin:0 0 14px; max-width:66ch; }
+  ul.plain, ol.plain{ margin:0 0 16px; padding-left:1.3em; max-width:64ch; }
+  ul.plain li, ol.plain li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+  .accent-word{ color:var(--accent-ink); font-weight:600; }
+
+  /* ---------- code panel ---------- */
+  .code-panel{
+    background:var(--code-bg); color:var(--code-ink);
+    border-radius:11px; overflow:hidden;
+    margin:16px 0 22px; box-shadow:var(--shadow);
+  }
+  .code-panel .tab{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px; font-size:11.5px;
+    font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
+    color:#9fb3c8; background:rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel pre{
+    margin:0; padding:14px 16px 16px; overflow-x:auto;
+    font-size:12.8px; line-height:1.65;
+  }
+  .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
+  .tok-c{ color:#8592a6; } /* comment */
+  .tok-k{ color:#e8935a; } /* keyword */
+  .tok-s{ color:#8fc7a8; } /* string */
+  .tok-f{ color:#7fb5e8; } /* function/name */
+  .tok-n{ color:#e7ecf1; }
+
+  code.inline{
+    background:var(--surface-2); border:1px solid var(--line);
+    padding:1.5px 6px; border-radius:5px; font-size:.87em;
+  }
+
+  /* ---------- figures / diagrams ---------- */
+  figure.diagram{
+    margin:24px 0 26px; padding:18px 18px 14px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:13px; box-shadow:var(--shadow);
+  }
+  figure.diagram svg{ display:block; width:100%; height:auto; overflow:visible; }
+  figure.diagram figcaption{
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+  figure.diagram figcaption b{ color:var(--ink); }
+  .svg-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; fill:currentColor; }
+  .svg-title{ font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; font-weight:600; fill:currentColor; }
+  .svg-dim{ opacity:.62; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-radius:12px; padding:16px 18px; margin:20px 0;
+    border:1px solid var(--line); background:var(--surface);
+  }
+  .callout.takeaway{
+    background:var(--accent-soft); border-color:transparent;
+  }
+  .callout.takeaway .head{
+    display:flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:700; margin-bottom:10px;
+  }
+  .callout.takeaway ol{ margin:0; padding-left:1.2em; }
+  .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
+  .callout.note{ background:var(--accent2-soft); }
+  .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+
+  .pairgrid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin:18px 0;
+  }
+  .pairgrid .card{
+    border:1px solid var(--line); border-radius:11px; padding:13px 15px;
+    background:var(--surface);
+  }
+  .pairgrid .card h4{ font-size:13.5px; margin-bottom:6px; font-family:"IBM Plex Sans"; }
+  .pairgrid .card p{ font-size:13px; color:var(--ink-dim); margin:0; }
+  @media (max-width:640px){ .pairgrid{ grid-template-columns:1fr; } }
+
+  table.reftable{
+    width:100%; border-collapse:collapse; margin:16px 0 22px;
+    font-size:13.5px;
+  }
+  table.reftable th{
+    text-align:left; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim);
+    padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  table.reftable td{
+    padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top;
+  }
+  table.reftable tr:last-child td{ border-bottom:none; }
+  table.reftable code{ font-size:12px; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:2.5px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+    font-family:"IBM Plex Mono",monospace; white-space:nowrap;
+  }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.bad{ background:var(--bad-soft); color:var(--bad); }
+  .pill::before{ content:"●"; font-size:8px; }
+
+  .chapfoot{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:46px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  footer.end{
+    margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:78vw; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease;
+      z-index:50; box-shadow:var(--shadow);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .menu-btn{ display:flex; }
+    .content{ padding-top:76px; }
+    .overlay{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:45;
+    }
+    .overlay.show{ display:block; }
+    .pairgrid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="menu-btn" id="menuBtn" role="button" aria-label="打开目录" tabindex="0">
+  <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="菜单"><line x1="1" y1="4" x2="17" y2="4" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.6"/></svg>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="kicker">Build an AI Agent · 学习指南</span>
+      <h1>从零构建 AI Agent</h1>
+      <span class="sub">10 章代码精读 · 图解版 · 面向初学者</span>
+    </div>
+    <nav class="toc" id="toc">
+      <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <div class="group-label">Part 1 · 搭建第一个 Agent</div>
+      <a class="active" href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
+      <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
+      <a href="ch03_工具与FunctionCalling.html"><span class="num">03</span>工具调用</a>
+      <a href="ch04_构建ReAct_Agent.html"><span class="num">04</span>ReAct Agent</a>
+      <div class="group-label">Part 2 · 进阶能力</div>
+      <a href="ch05_RAG与文件工具.html"><span class="num">05</span>RAG 与文件工具</a>
+      <a href="ch06_记忆系统.html"><span class="num">06</span>记忆系统</a>
+      <a href="ch07_规划与反思.html"><span class="num">07</span>规划与反思</a>
+      <a href="ch08_代码执行.html"><span class="num">08</span>代码执行</a>
+      <a href="ch09_多智能体系统.html"><span class="num">09</span>多智能体系统</a>
+      <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
+      <div class="group-label">附录</div>
+      <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="content">
+
+<section id="ch1" class="chapter">
+        <div class="ch-eyebrow"><span>Chapter 01</span><span class="line"></span><span>概念篇 · 无代码</span></div>
+        <h2>什么是 AI Agent</h2>
+        <p class="dek">在写一行 Agent 代码之前，先把边界画清楚：Agent 和普通脚本、聊天机器人的区别到底在哪，什么任务真的需要一个 Agent。</p>
+
+        <h3 class="subhead"><span class="n">1.1</span>三个要素撑起"自主性"</h3>
+        <p>本书对 LLM Agent 的定义很朴素：<strong>一个把部分控制流交给 LLM 的程序</strong>——由模型自己决定下一步做什么、什么时候停，而不是开发者在代码里用 <code class="inline">if/for</code> 写死。让这件事成立，需要三个结构性元素同时出现：</p>
+        <div class="pairgrid">
+          <div class="card"><h4>🧠 LLM（大脑）</h4><p>理解当前处境，决定下一步该做什么。</p></div>
+          <div class="card"><h4>🛠️ 工具（手脚）</h4><p>把行动空间扩展到外部世界：搜索、执行代码、查数据库。</p></div>
+        </div>
+        <p>第三个要素是<strong>循环</strong>——它让"决策"重复发生，直到目标达成，因为没人能提前知道一个任务需要几步、需要哪些工具。</p>
+
+        <figure class="diagram">
+          <svg viewBox="0 0 640 300" role="img" aria-label="Agent 决策循环：LLM 判断是否需要工具，执行工具，把结果写回上下文，再次判断是否停止">
+            <defs>
+              <marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/>
+              </marker>
+            </defs>
+            <circle cx="320" cy="150" r="118" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5" opacity=".4"/>
+            <!-- 4 nodes at N, E, S, W -->
+            <g>
+              <rect x="248" y="18" width="144" height="52" rx="10" fill="var(--accent-soft)" stroke="none"/>
+              <text x="320" y="40" text-anchor="middle" class="svg-title" fill="var(--accent-ink)">① LLM 判断</text>
+              <text x="320" y="58" text-anchor="middle" class="svg-label svg-dim">要不要用工具？用哪个？</text>
+            </g>
+            <g>
+              <rect x="470" y="124" width="150" height="52" rx="10" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+              <text x="545" y="146" text-anchor="middle" class="svg-title">② 执行工具</text>
+              <text x="545" y="164" text-anchor="middle" class="svg-label svg-dim">搜索 / 查资料 / 计算</text>
+            </g>
+            <g>
+              <rect x="248" y="230" width="144" height="52" rx="10" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+              <text x="320" y="252" text-anchor="middle" class="svg-title">③ 结果写回上下文</text>
+              <text x="320" y="270" text-anchor="middle" class="svg-label svg-dim">context 变得更丰富</text>
+            </g>
+            <g>
+              <rect x="20" y="124" width="150" height="52" rx="10" fill="var(--accent2-soft)" stroke="none"/>
+              <text x="95" y="146" text-anchor="middle" class="svg-title" fill="var(--accent2)">④ 判断是否足够</text>
+              <text x="95" y="164" text-anchor="middle" class="svg-label svg-dim">够了→给答案；不够→回①</text>
+            </g>
+            <path d="M382,55 C440,75 470,100 490,124" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar1)"/>
+            <path d="M545,176 C520,210 440,236 392,248" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar1)"/>
+            <path d="M248,252 C190,236 120,206 100,176" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar1)"/>
+            <path d="M95,124 C110,90 170,60 248,45" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar1)"/>
+            <text x="320" y="152" text-anchor="middle" class="svg-label svg-dim">loop 直到</text>
+            <text x="320" y="168" text-anchor="middle" class="svg-label svg-dim">任务完成</text>
+          </svg>
+          <figcaption><b>图 1.1</b> — Agent 的决策循环是"评估现状 → 选工具执行 → 把结果加回上下文 → 重新评估"的往复过程；简单查询一轮即止，复杂研究可能循环几十轮，步数由模型自己决定，不是硬编码。</figcaption>
+        </figure>
+
+        <h3 class="subhead"><span class="n">1.2</span>Workflow 还是 Agent？看谁在管"下一步"</h3>
+        <p>这是全书最重要的一次概念区分。两者的差别不在"用没用 LLM"，而在于<strong>谁决定执行顺序</strong>：</p>
+        <figure class="diagram">
+          <svg viewBox="0 0 680 190" role="img" aria-label="Workflow 由开发者写死顺序，Agent 由模型动态决定路径">
+            <defs>
+              <marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="currentColor"/></marker>
+            </defs>
+            <text x="10" y="20" class="svg-title">Workflow · 开发者写死流程</text>
+            <rect x="10" y="36" width="86" height="40" rx="9" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="53" y="60" text-anchor="middle" class="svg-label">A</text>
+            <line x1="96" y1="56" x2="130" y2="56" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+            <rect x="134" y="36" width="86" height="40" rx="9" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="177" y="60" text-anchor="middle" class="svg-label">B</text>
+            <line x1="220" y1="56" x2="254" y2="56" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+            <rect x="258" y="36" width="86" height="40" rx="9" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="301" y="60" text-anchor="middle" class="svg-label">C</text>
+            <text x="177" y="98" text-anchor="middle" class="svg-label svg-dim">路径唯一 · 可预测 · 可测试</text>
+
+            <line x1="360" y1="56" x2="360" y2="56" stroke="var(--line)"/>
+            <line x1="368" y1="10" x2="368" y2="180" stroke="var(--line)" stroke-dasharray="3 4"/>
+
+            <text x="392" y="20" class="svg-title" fill="var(--accent-ink)">Agent · 模型动态决定</text>
+            <rect x="392" y="36" width="86" height="40" rx="9" fill="var(--accent-soft)" stroke="none"/>
+            <text x="435" y="60" text-anchor="middle" class="svg-label">起点</text>
+            <path d="M478,50 C520,30 560,26 596,40" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+            <path d="M478,62 C520,86 560,100 596,100" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+            <path d="M478,74 C510,120 540,140 596,150" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+            <rect x="600" y="22" width="72" height="30" rx="8" fill="none" stroke="currentColor" stroke-width="1"/>
+            <text x="636" y="41" text-anchor="middle" class="svg-label">搜索</text>
+            <rect x="600" y="86" width="72" height="30" rx="8" fill="none" stroke="currentColor" stroke-width="1"/>
+            <text x="636" y="105" text-anchor="middle" class="svg-label">读文件</text>
+            <rect x="600" y="136" width="72" height="30" rx="8" fill="none" stroke="currentColor" stroke-width="1"/>
+            <text x="636" y="155" text-anchor="middle" class="svg-label">再搜索</text>
+            <text x="500" y="178" text-anchor="middle" class="svg-label svg-dim">路径由模型现场决定</text>
+          </svg>
+          <figcaption><b>图 1.2</b> — Workflow 的每一步由代码里的 <code class="inline">if/for</code> 决定；Agent 的每一步由 LLM 根据当前上下文实时决定，路径事先无法完全预知。生产系统常常混用：用 Workflow 兜住整体流程的可控性，在某个阶段内嵌一个 Agent 处理需要灵活性的子任务。</figcaption>
+        </figure>
+
+        <h3 class="subhead"><span class="n">1.3</span>什么任务才配得上一个 Agent</h3>
+        <p>Agent 更贵、更慢、错误还会传播——先问两个问题，能省则省：</p>
+        <ol class="plain">
+          <li><strong>这个任务需要 LLM 吗？</strong> 结构化数据、输入范围有限、规则可枚举 → 传统代码更快更便宜。</li>
+          <li><strong>需要 LLM，但需要 Agent 吗？</strong> 单次调用能不能搞定？看<strong>任务复杂度</strong>（步数能否提前预知）、<strong>任务价值</strong>（值不值得多花几倍成本和延迟）、<strong>出错代价</strong>（错了容不容易发现、后果多严重）。</li>
+        </ol>
+        <p>书中反复使用的试金石问题是：<em>"如果 Kipchoge 能一直保持马拉松世界纪录配速，跑到月球要多久？"</em>——查纪录、查月地距离、做换算，步骤数不固定，正是 Agent 的用武之地。全书用 <strong>GAIA</strong> 基准（Meta &amp; Hugging Face，2023）系统化收集这类问题，因为它答案明确、可以快速反馈，又不需要专业领域知识，很适合练习"观察失败 → 分析原因 → 改进"这个 Agent 开发的核心循环。</p>
+
+        <h3 class="subhead"><span class="n">1.4</span>上下文工程：决定 Agent 成败的隐藏变量</h3>
+        <p>Agent 失败通常只有两种原因：<strong>模型不够聪明</strong>，或者<strong>该给的信息没进上下文</strong>。现实中后者占了大头——公司请假政策文档没被检索到，模型再强也答不出请假规则。这就是<span class="accent-word">上下文工程（context engineering）</span>存在的理由：不是简单地写好提示词，而是系统性地设计"工具结果怎么处理、保留多少对话历史、什么时候检索外部知识"。也别迷信"上下文越大越好"——研究显示更长的输入反而会让模型性能下降（"lost in the middle"），所以目标是<strong>精挑细选</strong>而不是塞满。</p>
+        <p>本书把上下文工程拆成五种策略，后面每一章基本都能对应上一种：</p>
+        <table class="reftable">
+          <tr><th>策略</th><th>做什么</th><th>对应章节</th></tr>
+          <tr><td><strong>Generate</strong> 生成</td><td>让 LLM 自己产出计划 / 反思，主动构建上下文</td><td>第 7 章 规划与反思</td></tr>
+          <tr><td><strong>Retrieve</strong> 检索</td><td>从外部取信息塞进上下文：搜索、数据库、向量库</td><td>第 3、5、6 章</td></tr>
+          <tr><td><strong>Write</strong> 写入</td><td>把上下文里的信息落盘：长期记忆、草稿、文件</td><td>第 6、8 章</td></tr>
+          <tr><td><strong>Reduce</strong> 压缩</td><td>总结旧对话、删除冗余、按重要性过滤</td><td>第 6 章</td></tr>
+          <tr><td><strong>Isolate</strong> 隔离</td><td>把任务/工具分进独立环境：沙箱、专用子 Agent</td><td>第 8、9 章</td></tr>
+        </table>
+        <p>再往外一层是<strong>harness engineering</strong>——当 Agent 真正跑在用户机器上、被真实产品使用时，模型之外的一切（记忆、安全执行、多 Agent 协作、用户的文件系统）都变得同等重要。书里的公式很直白：<span class="accent-word">Agent = Model + Harness</span>。这本书接下来的每一章，都是在往这个 Harness 里添砖加瓦。</p>
+
+        <div class="callout takeaway">
+          <div class="head">本章要带走的几句话</div>
+          <ol>
+            <li>Agent = LLM（大脑）+ 工具（手脚）+ 循环（让决策重复发生直到完成）。</li>
+            <li>Workflow 和 Agent 的分界线是"谁决定下一步"：开发者代码 vs. 模型实时判断，两者可以混用。</li>
+            <li>先问"需要 LLM 吗"，再问"需要 Agent 吗"——复杂度、价值、出错代价决定要不要上 Agent。</li>
+            <li>Agent 失败的大头是"信息没喂对"而非"模型不够聪明"；上下文越大不等于越好。</li>
+            <li>Agent = Model + Harness，本书后续每一章都在给这个 Harness 添加一种能力。</li>
+          </ol>
+        </div>
+        
+      </section>
+
+<div class="chapfoot"><a href="ch00_导读与全书地图.html">&larr; 导读与全书地图</a><a href="ch02_LLM_API基础.html">LLM API 基础 &rarr;</a></div>
+
+      <footer class="end">
+        本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var sidebar = document.getElementById('sidebar');
+  var menuBtn = document.getElementById('menuBtn');
+  var overlay = document.getElementById('overlay');
+  function closeMenu(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  function toggleMenu(){ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); }
+  menuBtn.addEventListener('click', toggleMenu);
+  menuBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleMenu(); }});
+  overlay.addEventListener('click', closeMenu);
+  document.querySelectorAll('nav.toc a').forEach(function(a){
+    a.addEventListener('click', function(){ closeMenu(); });
+  });
+})();
+</script>
+</body>
+</html>
