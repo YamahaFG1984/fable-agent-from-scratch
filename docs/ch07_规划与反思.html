@@ -216,16 +216,28 @@
   }
   .code-panel .tab{
     display:flex; align-items:center; gap:8px;
-    padding:8px 14px; font-size:11.5px;
+    padding:8px 10px 8px 14px; font-size:11.5px;
     font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
     color:#9fb3c8; background:rgba(255,255,255,.04);
     border-bottom:1px solid rgba(255,255,255,.08);
   }
-  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8; flex:none;}
+  .code-panel .tab .fname{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .code-panel .lang-toggle{ display:flex; gap:4px; margin-left:auto; flex:none; }
+  .code-panel .lang-btn{
+    background:transparent; border:1px solid rgba(255,255,255,.18);
+    color:#9fb3c8; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+    padding:3px 10px; border-radius:999px; cursor:pointer; letter-spacing:.02em;
+    line-height:1.4;
+  }
+  .code-panel .lang-btn:hover{ color:#e7ecf1; border-color:rgba(255,255,255,.36); }
+  .code-panel .lang-btn.active{ background:var(--code-accent); color:#1a2233; border-color:transparent; font-weight:600; }
+  .code-panel .lang-btn:focus-visible{ outline:2px solid var(--code-accent); outline-offset:1px; }
   .code-panel pre{
     margin:0; padding:14px 16px 16px; overflow-x:auto;
     font-size:12.8px; line-height:1.65;
   }
+  .code-panel pre[hidden]{ display:none; }
   .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
   .tok-c{ color:#8592a6; } /* comment */
   .tok-k{ color:#e8935a; } /* keyword */
@@ -415,8 +427,15 @@
 
         <h3 class="subhead"><span class="n">7.2</span>空壳工具的真正价值</h3>
         <div class="code-panel">
-          <div class="tab"><span class="dot"></span>planning.py</div>
-          <pre><code><span class="tok-k">@tool</span>
+          <div class="tab">
+            <span class="dot"></span>
+            <span class="fname" data-fname-py="planning.py" data-fname-ts="planning.ts">planning.py</span>
+            <div class="lang-toggle">
+              <button type="button" class="lang-btn active" data-lang="py">Python</button>
+              <button type="button" class="lang-btn" data-lang="ts">TypeScript</button>
+            </div>
+          </div>
+          <pre data-lang="py"><code><span class="tok-k">@tool</span>
 <span class="tok-k">def</span> <span class="tok-f">create_tasks</span>(<span class="tok-n">tasks</span>: <span class="tok-n">List</span>[<span class="tok-n">Task</span>]) -> <span class="tok-n">str</span>:
     <span class="tok-s">"""Create or update a task plan.
     WHEN TO USE: 复杂多步研究、需要综合多来源的问题
@@ -424,6 +443,26 @@
     HOW TO USE: 每次重新生成整个清单并更新状态
     """</span>
     <span class="tok-k">return</span> <span class="tok-s">"\n"</span>.<span class="tok-f">join</span>(<span class="tok-f">str</span>(<span class="tok-n">t</span>) <span class="tok-k">for</span> <span class="tok-n">t</span> <span class="tok-k">in</span> <span class="tok-n">tasks</span>)</code></pre>
+          <pre data-lang="ts" hidden><code><span class="tok-k">import</span> { <span class="tok-n">z</span> } <span class="tok-k">from</span> <span class="tok-s">"zod"</span>;
+
+<span class="tok-k">const</span> <span class="tok-n">TaskSchema</span> = <span class="tok-n">z</span>.<span class="tok-f">object</span>({
+  <span class="tok-n">content</span>: <span class="tok-n">z</span>.<span class="tok-f">string</span>(),
+  <span class="tok-n">status</span>: <span class="tok-n">z</span>.<span class="tok-f">enum</span>([<span class="tok-s">"pending"</span>, <span class="tok-s">"in_progress"</span>, <span class="tok-s">"completed"</span>]),
+});
+<span class="tok-k">type</span> <span class="tok-f">Task</span> = <span class="tok-n">z</span>.<span class="tok-n">infer</span>&lt;<span class="tok-k">typeof</span> <span class="tok-n">TaskSchema</span>&gt;;
+
+<span class="tok-k">const</span> <span class="tok-n">createTasks</span> = {
+  <span class="tok-n">name</span>: <span class="tok-s">"create_tasks"</span>,
+  <span class="tok-n">description</span>: <span class="tok-s">`Create or update a task plan.
+WHEN TO USE: 复杂多步研究、需要综合多来源的问题
+WHEN NOT TO USE: 一次搜索能答的简单问题
+HOW TO USE: 每次重新生成整个清单并更新状态`</span>,
+  <span class="tok-n">schema</span>: <span class="tok-n">z</span>.<span class="tok-f">object</span>({ <span class="tok-n">tasks</span>: <span class="tok-n">z</span>.<span class="tok-f">array</span>(<span class="tok-n">TaskSchema</span>) }),
+  <span class="tok-n">execute</span>: (<span class="tok-n">tasks</span>: <span class="tok-n">Task</span>[]) =&gt;
+    <span class="tok-n">tasks</span>
+      .<span class="tok-f">map</span>((<span class="tok-n">t</span>) =&gt; <span class="tok-s">`${t.status === "pending" ? "[ ]" : t.status === "in_progress" ? "[&gt;]" : "[x]"} ${t.content}`</span>)
+      .<span class="tok-f">join</span>(<span class="tok-s">"\n"</span>),
+};</code></pre>
         </div>
         <p>函数体就一行格式化，没有数据库、没有调度器、什么都不存。它的价值全靠三层机制：<strong>①强迫先想后做</strong>——要调用这个工具，模型必须先生成完整任务分解；<strong>②计划进入历史</strong>——之后每一步模型都能看到"全局地图"；<strong>③状态更新即自查</strong>——更新状态时模型被迫盘点进度。<code class="inline">reflection</code> 工具更极端，连格式化都算不上，就是把输入原样回显——价值全在于<strong>为了填参数，模型必须先组织一段对现状的分析</strong>，写下来的思考比隐式思考更可靠。<strong>docstring 才是本体</strong>：WHEN TO USE / WHEN NOT TO USE / HOW TO USE 三段完全是写给模型的行为指南——工具描述被推到了提示词工程的极致。</p>
 
@@ -462,6 +501,21 @@
   overlay.addEventListener('click', closeMenu);
   document.querySelectorAll('nav.toc a').forEach(function(a){
     a.addEventListener('click', function(){ closeMenu(); });
+  });
+
+  document.querySelectorAll('.code-panel').forEach(function(panel){
+    var btns = panel.querySelectorAll('.lang-btn');
+    var fname = panel.querySelector('.fname');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var lang = btn.getAttribute('data-lang');
+        btns.forEach(function(b){ b.classList.toggle('active', b === btn); });
+        panel.querySelectorAll('pre[data-lang]').forEach(function(pre){
+          pre.hidden = pre.getAttribute('data-lang') !== lang;
+        });
+        if (fname) fname.textContent = fname.getAttribute('data-fname-' + lang);
+      });
+    });
   });
 })();
 </script>

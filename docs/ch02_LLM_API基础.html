@@ -216,16 +216,28 @@
   }
   .code-panel .tab{
     display:flex; align-items:center; gap:8px;
-    padding:8px 14px; font-size:11.5px;
+    padding:8px 10px 8px 14px; font-size:11.5px;
     font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
     color:#9fb3c8; background:rgba(255,255,255,.04);
     border-bottom:1px solid rgba(255,255,255,.08);
   }
-  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8; flex:none;}
+  .code-panel .tab .fname{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .code-panel .lang-toggle{ display:flex; gap:4px; margin-left:auto; flex:none; }
+  .code-panel .lang-btn{
+    background:transparent; border:1px solid rgba(255,255,255,.18);
+    color:#9fb3c8; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+    padding:3px 10px; border-radius:999px; cursor:pointer; letter-spacing:.02em;
+    line-height:1.4;
+  }
+  .code-panel .lang-btn:hover{ color:#e7ecf1; border-color:rgba(255,255,255,.36); }
+  .code-panel .lang-btn.active{ background:var(--code-accent); color:#1a2233; border-color:transparent; font-weight:600; }
+  .code-panel .lang-btn:focus-visible{ outline:2px solid var(--code-accent); outline-offset:1px; }
   .code-panel pre{
     margin:0; padding:14px 16px 16px; overflow-x:auto;
     font-size:12.8px; line-height:1.65;
   }
+  .code-panel pre[hidden]{ display:none; }
   .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
   .tok-c{ color:#8592a6; } /* comment */
   .tok-k{ color:#e8935a; } /* keyword */
@@ -382,8 +394,15 @@
         <h3 class="subhead"><span class="n">2.1</span>两家 API 的共同骨架</h3>
         <p>OpenAI 和 Anthropic 的调用方式长得不一样，但骨架相同：<strong>一个模型名 + 一个 <code class="inline">messages</code> 列表 → 一条回复</strong>。</p>
         <div class="code-panel">
-          <div class="tab"><span class="dot"></span>openai_call.py</div>
-          <pre><code><span class="tok-k">from</span> <span class="tok-n">openai</span> <span class="tok-k">import</span> <span class="tok-n">OpenAI</span>
+          <div class="tab">
+            <span class="dot"></span>
+            <span class="fname" data-fname-py="openai_call.py" data-fname-ts="openai_call.ts">openai_call.py</span>
+            <div class="lang-toggle">
+              <button type="button" class="lang-btn active" data-lang="py">Python</button>
+              <button type="button" class="lang-btn" data-lang="ts">TypeScript</button>
+            </div>
+          </div>
+          <pre data-lang="py"><code><span class="tok-k">from</span> <span class="tok-n">openai</span> <span class="tok-k">import</span> <span class="tok-n">OpenAI</span>
 <span class="tok-n">client</span> = <span class="tok-f">OpenAI</span>()
 <span class="tok-n">response</span> = <span class="tok-n">client</span>.<span class="tok-n">chat</span>.<span class="tok-n">completions</span>.<span class="tok-f">create</span>(
     <span class="tok-n">model</span>=<span class="tok-s">"gpt-5.4-mini"</span>,
@@ -393,16 +412,40 @@
     ]
 )
 <span class="tok-f">print</span>(<span class="tok-n">response</span>.<span class="tok-n">choices</span>[0].<span class="tok-n">message</span>.<span class="tok-n">content</span>)</code></pre>
+          <pre data-lang="ts" hidden><code><span class="tok-k">import</span> <span class="tok-n">OpenAI</span> <span class="tok-k">from</span> <span class="tok-s">"openai"</span>;
+
+<span class="tok-k">const</span> <span class="tok-n">client</span> = <span class="tok-k">new</span> <span class="tok-f">OpenAI</span>();
+<span class="tok-k">const</span> <span class="tok-n">response</span> = <span class="tok-k">await</span> <span class="tok-n">client</span>.<span class="tok-n">chat</span>.<span class="tok-n">completions</span>.<span class="tok-f">create</span>({
+  <span class="tok-n">model</span>: <span class="tok-s">"gpt-5.4-mini"</span>,
+  <span class="tok-n">messages</span>: [
+    { <span class="tok-n">role</span>: <span class="tok-s">"system"</span>, <span class="tok-n">content</span>: <span class="tok-s">"You are a helpful assistant."</span> },
+    { <span class="tok-n">role</span>: <span class="tok-s">"user"</span>, <span class="tok-n">content</span>: <span class="tok-s">"What is the capital of France?"</span> },
+  ],
+});
+<span class="tok-n">console</span>.<span class="tok-f">log</span>(<span class="tok-n">response</span>.<span class="tok-n">choices</span>[0].<span class="tok-n">message</span>.<span class="tok-n">content</span>);</code></pre>
         </div>
         <p><code class="inline">role</code> 只有三种身份：<strong>system</strong>（开发者设定行为）、<strong>user</strong>（用户输入）、<strong>assistant</strong>（模型历史回复）。两家的差异——字段名不同、Anthropic 强制要求 <code class="inline">max_tokens</code>——正是下一节要解决的"多厂商割裂"问题。</p>
 
         <h3 class="subhead"><span class="n">2.2</span>用 LiteLLM 统一多厂商</h3>
         <div class="code-panel">
-          <div class="tab"><span class="dot"></span>litellm_unify.py</div>
-          <pre><code><span class="tok-k">from</span> <span class="tok-n">litellm</span> <span class="tok-k">import</span> <span class="tok-n">completion</span>
+          <div class="tab">
+            <span class="dot"></span>
+            <span class="fname" data-fname-py="litellm_unify.py" data-fname-ts="litellm_unify.ts">litellm_unify.py</span>
+            <div class="lang-toggle">
+              <button type="button" class="lang-btn active" data-lang="py">Python</button>
+              <button type="button" class="lang-btn" data-lang="ts">TypeScript</button>
+            </div>
+          </div>
+          <pre data-lang="py"><code><span class="tok-k">from</span> <span class="tok-n">litellm</span> <span class="tok-k">import</span> <span class="tok-n">completion</span>
 
 <span class="tok-n">response</span> = <span class="tok-f">completion</span>(<span class="tok-n">model</span>=<span class="tok-s">"gpt-5.4-mini"</span>, <span class="tok-n">messages</span>=[...])       <span class="tok-c"># OpenAI</span>
 <span class="tok-n">response</span> = <span class="tok-f">completion</span>(<span class="tok-n">model</span>=<span class="tok-s">"claude-sonnet-4-6"</span>, <span class="tok-n">messages</span>=[...])  <span class="tok-c"># Anthropic</span></code></pre>
+          <pre data-lang="ts" hidden><code><span class="tok-k">import</span> { <span class="tok-n">generateText</span> } <span class="tok-k">from</span> <span class="tok-s">"ai"</span>;
+<span class="tok-k">import</span> { <span class="tok-n">openai</span> } <span class="tok-k">from</span> <span class="tok-s">"@ai-sdk/openai"</span>;
+<span class="tok-k">import</span> { <span class="tok-n">anthropic</span> } <span class="tok-k">from</span> <span class="tok-s">"@ai-sdk/anthropic"</span>;
+
+<span class="tok-k">let</span> <span class="tok-n">response</span> = <span class="tok-k">await</span> <span class="tok-f">generateText</span>({ <span class="tok-n">model</span>: <span class="tok-f">openai</span>(<span class="tok-s">"gpt-5.4-mini"</span>), <span class="tok-n">messages</span>: [...] });       <span class="tok-c">// OpenAI</span>
+<span class="tok-n">response</span> = <span class="tok-k">await</span> <span class="tok-f">generateText</span>({ <span class="tok-n">model</span>: <span class="tok-f">anthropic</span>(<span class="tok-s">"claude-sonnet-4-6"</span>), <span class="tok-n">messages</span>: [...] });  <span class="tok-c">// Anthropic</span></code></pre>
         </div>
         <p>LiteLLM 把所有厂商响应统一成 OpenAI 格式，换模型只需换一个字符串。这是全书的一个关键工程决策：框架的 LLM 通信层（<code class="inline">scratch_agents/llm.py</code> 里的 <code class="inline">LlmClient</code>）直接构建在 <code class="inline">litellm.acompletion</code> 之上，所以第 4 章写好的 Agent 天生支持任何模型厂商。</p>
 
@@ -443,8 +486,15 @@
 
         <h3 class="subhead"><span class="n">2.4</span>结构化输出：把 LLM 变成软件组件</h3>
         <div class="code-panel">
-          <div class="tab"><span class="dot"></span>structured_output.py</div>
-          <pre><code><span class="tok-k">from</span> <span class="tok-n">pydantic</span> <span class="tok-k">import</span> <span class="tok-n">BaseModel</span>
+          <div class="tab">
+            <span class="dot"></span>
+            <span class="fname" data-fname-py="structured_output.py" data-fname-ts="structured_output.ts">structured_output.py</span>
+            <div class="lang-toggle">
+              <button type="button" class="lang-btn active" data-lang="py">Python</button>
+              <button type="button" class="lang-btn" data-lang="ts">TypeScript</button>
+            </div>
+          </div>
+          <pre data-lang="py"><code><span class="tok-k">from</span> <span class="tok-n">pydantic</span> <span class="tok-k">import</span> <span class="tok-n">BaseModel</span>
 
 <span class="tok-k">class</span> <span class="tok-f">ExtractedInfo</span>(<span class="tok-n">BaseModel</span>):
     <span class="tok-n">name</span>: <span class="tok-n">str</span>
@@ -456,13 +506,34 @@
     <span class="tok-n">messages</span>=[{<span class="tok-s">"role"</span>: <span class="tok-s">"user"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"..."</span>}],
     <span class="tok-n">response_format</span>=<span class="tok-n">ExtractedInfo</span>,   <span class="tok-c"># ← 关键</span>
 )</code></pre>
+          <pre data-lang="ts" hidden><code><span class="tok-k">import</span> { <span class="tok-n">z</span> } <span class="tok-k">from</span> <span class="tok-s">"zod"</span>;
+<span class="tok-k">import</span> { <span class="tok-n">generateObject</span> } <span class="tok-k">from</span> <span class="tok-s">"ai"</span>;
+
+<span class="tok-k">const</span> <span class="tok-f">ExtractedInfo</span> = <span class="tok-n">z</span>.<span class="tok-f">object</span>({
+  <span class="tok-n">name</span>: <span class="tok-n">z</span>.<span class="tok-f">string</span>(),
+  <span class="tok-n">email</span>: <span class="tok-n">z</span>.<span class="tok-f">string</span>(),
+  <span class="tok-n">phone</span>: <span class="tok-n">z</span>.<span class="tok-f">string</span>().<span class="tok-f">nullable</span>().<span class="tok-f">optional</span>(),
+});
+
+<span class="tok-k">const</span> { <span class="tok-n">object</span>: <span class="tok-n">response</span> } = <span class="tok-k">await</span> <span class="tok-f">generateObject</span>({
+  <span class="tok-n">model</span>: <span class="tok-f">openai</span>(<span class="tok-s">"gpt-5.4-mini"</span>),
+  <span class="tok-n">messages</span>: [{ <span class="tok-n">role</span>: <span class="tok-s">"user"</span>, <span class="tok-n">content</span>: <span class="tok-s">"..."</span> }],
+  <span class="tok-n">schema</span>: <span class="tok-n">ExtractedInfo</span>,   <span class="tok-c">// ← 关键</span>
+});</code></pre>
         </div>
         <p>传入 Pydantic 模型作为 <code class="inline">response_format</code>，模型输出就被约束成符合该 schema 的 JSON——程序无法可靠解析自由文本，但能可靠解析 <code class="inline">ExtractedInfo</code>。第 4 章 Agent 的 <code class="inline">output_type</code>、第 6 章的记忆抽取都靠这一招。</p>
 
         <h3 class="subhead"><span class="n">2.5</span>生产三件套：异步、并发限流、自动重试</h3>
         <div class="code-panel">
-          <div class="tab"><span class="dot"></span>concurrent_calls.py</div>
-          <pre><code><span class="tok-n">semaphore</span> = <span class="tok-n">asyncio</span>.<span class="tok-f">Semaphore</span>(10)   <span class="tok-c"># 最多 10 个请求同时在飞</span>
+          <div class="tab">
+            <span class="dot"></span>
+            <span class="fname" data-fname-py="concurrent_calls.py" data-fname-ts="concurrent_calls.ts">concurrent_calls.py</span>
+            <div class="lang-toggle">
+              <button type="button" class="lang-btn active" data-lang="py">Python</button>
+              <button type="button" class="lang-btn" data-lang="ts">TypeScript</button>
+            </div>
+          </div>
+          <pre data-lang="py"><code><span class="tok-n">semaphore</span> = <span class="tok-n">asyncio</span>.<span class="tok-f">Semaphore</span>(10)   <span class="tok-c"># 最多 10 个请求同时在飞</span>
 
 <span class="tok-k">async</span> <span class="tok-k">def</span> <span class="tok-f">call_llm</span>(<span class="tok-n">prompt</span>: <span class="tok-n">str</span>) -> <span class="tok-n">str</span>:
     <span class="tok-k">async</span> <span class="tok-k">with</span> <span class="tok-n">semaphore</span>:           <span class="tok-c"># 第 11 个请求排队等</span>
@@ -473,6 +544,22 @@
         <span class="tok-k">return</span> ...
 
 <span class="tok-n">results</span> = <span class="tok-k">await</span> <span class="tok-n">asyncio</span>.<span class="tok-f">gather</span>(*<span class="tok-n">tasks</span>, <span class="tok-n">return_exceptions</span>=<span class="tok-n">True</span>)</code></pre>
+          <pre data-lang="ts" hidden><code><span class="tok-k">import</span> <span class="tok-n">pLimit</span> <span class="tok-k">from</span> <span class="tok-s">"p-limit"</span>;
+
+<span class="tok-k">const</span> <span class="tok-n">limit</span> = <span class="tok-f">pLimit</span>(10);   <span class="tok-c">// 最多 10 个请求同时在飞</span>
+
+<span class="tok-k">async</span> <span class="tok-k">function</span> <span class="tok-f">callLlm</span>(<span class="tok-n">prompt</span>: <span class="tok-n">string</span>): <span class="tok-n">Promise</span>&lt;<span class="tok-n">string</span>&gt; {
+  <span class="tok-k">return</span> <span class="tok-f">limit</span>(<span class="tok-k">async</span> () =&gt; {          <span class="tok-c">// 第 11 个请求排队等</span>
+    <span class="tok-k">const</span> <span class="tok-n">response</span> = <span class="tok-k">await</span> <span class="tok-f">generateText</span>({
+      <span class="tok-n">model</span>,
+      <span class="tok-n">messages</span>: [<span class="tok-c">/* ... */</span>],
+      <span class="tok-n">maxRetries</span>: 3,                  <span class="tok-c">// 失败自动指数退避重试</span>
+    });
+    <span class="tok-k">return</span> <span class="tok-n">response</span>.<span class="tok-n">text</span>;
+  });
+}
+
+<span class="tok-k">const</span> <span class="tok-n">results</span> = <span class="tok-k">await</span> <span class="tok-n">Promise</span>.<span class="tok-f">allSettled</span>(<span class="tok-n">tasks</span>);</code></pre>
         </div>
         <p>LLM 调用的瓶颈是网络等待而非本地计算，天然适合异步；<code class="inline">Semaphore</code> 防止撞上速率限制；<code class="inline">return_exceptions=True</code> 让单个失败不拖垮其余 99 个。这也是为什么框架里 <code class="inline">Agent.run()</code> 和所有工具执行全部是 <code class="inline">async</code> 的。</p>
 
@@ -518,6 +605,21 @@
   overlay.addEventListener('click', closeMenu);
   document.querySelectorAll('nav.toc a').forEach(function(a){
     a.addEventListener('click', function(){ closeMenu(); });
+  });
+
+  document.querySelectorAll('.code-panel').forEach(function(panel){
+    var btns = panel.querySelectorAll('.lang-btn');
+    var fname = panel.querySelector('.fname');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var lang = btn.getAttribute('data-lang');
+        btns.forEach(function(b){ b.classList.toggle('active', b === btn); });
+        panel.querySelectorAll('pre[data-lang]').forEach(function(pre){
+          pre.hidden = pre.getAttribute('data-lang') !== lang;
+        });
+        if (fname) fname.textContent = fname.getAttribute('data-fname-' + lang);
+      });
+    });
   });
 })();
 </script>

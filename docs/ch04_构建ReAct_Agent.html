@@ -216,16 +216,28 @@
   }
   .code-panel .tab{
     display:flex; align-items:center; gap:8px;
-    padding:8px 14px; font-size:11.5px;
+    padding:8px 10px 8px 14px; font-size:11.5px;
     font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
     color:#9fb3c8; background:rgba(255,255,255,.04);
     border-bottom:1px solid rgba(255,255,255,.08);
   }
-  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8; flex:none;}
+  .code-panel .tab .fname{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .code-panel .lang-toggle{ display:flex; gap:4px; margin-left:auto; flex:none; }
+  .code-panel .lang-btn{
+    background:transparent; border:1px solid rgba(255,255,255,.18);
+    color:#9fb3c8; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+    padding:3px 10px; border-radius:999px; cursor:pointer; letter-spacing:.02em;
+    line-height:1.4;
+  }
+  .code-panel .lang-btn:hover{ color:#e7ecf1; border-color:rgba(255,255,255,.36); }
+  .code-panel .lang-btn.active{ background:var(--code-accent); color:#1a2233; border-color:transparent; font-weight:600; }
+  .code-panel .lang-btn:focus-visible{ outline:2px solid var(--code-accent); outline-offset:1px; }
   .code-panel pre{
     margin:0; padding:14px 16px 16px; overflow-x:auto;
     font-size:12.8px; line-height:1.65;
   }
+  .code-panel pre[hidden]{ display:none; }
   .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
   .tok-c{ color:#8592a6; } /* comment */
   .tok-k{ color:#e8935a; } /* keyword */
@@ -426,8 +438,15 @@
 
         <h3 class="subhead"><span class="n">4.3</span>厂商中立的内部语言</h3>
         <div class="code-panel">
-          <div class="tab"><span class="dot"></span>types.py</div>
-          <pre><code><span class="tok-k">class</span> <span class="tok-f">Message</span>(<span class="tok-n">BaseModel</span>):      <span class="tok-c"># 文本消息</span>
+          <div class="tab">
+            <span class="dot"></span>
+            <span class="fname" data-fname-py="types.py" data-fname-ts="types.ts">types.py</span>
+            <div class="lang-toggle">
+              <button type="button" class="lang-btn active" data-lang="py">Python</button>
+              <button type="button" class="lang-btn" data-lang="ts">TypeScript</button>
+            </div>
+          </div>
+          <pre data-lang="py"><code><span class="tok-k">class</span> <span class="tok-f">Message</span>(<span class="tok-n">BaseModel</span>):      <span class="tok-c"># 文本消息</span>
     <span class="tok-n">role</span>: <span class="tok-n">Literal</span>[<span class="tok-s">"system"</span>, <span class="tok-s">"user"</span>, <span class="tok-s">"assistant"</span>]
     <span class="tok-n">content</span>: <span class="tok-n">str</span>
 
@@ -440,6 +459,22 @@
     <span class="tok-n">tool_call_id</span>: <span class="tok-n">str</span>
     <span class="tok-n">status</span>: <span class="tok-n">Literal</span>[<span class="tok-s">"success"</span>, <span class="tok-s">"error"</span>]  <span class="tok-c"># ← 错误是一等公民</span>
     <span class="tok-n">content</span>: <span class="tok-n">list</span></code></pre>
+          <pre data-lang="ts" hidden><code><span class="tok-k">interface</span> <span class="tok-f">Message</span> {        <span class="tok-c">// 文本消息</span>
+  <span class="tok-n">role</span>: <span class="tok-s">"system"</span> | <span class="tok-s">"user"</span> | <span class="tok-s">"assistant"</span>;
+  <span class="tok-n">content</span>: <span class="tok-n">string</span>;
+}
+
+<span class="tok-k">interface</span> <span class="tok-f">ToolCall</span> {       <span class="tok-c">// LLM 的调用请求</span>
+  <span class="tok-n">toolCallId</span>: <span class="tok-n">string</span>;
+  <span class="tok-n">name</span>: <span class="tok-n">string</span>;
+  <span class="tok-n">arguments</span>: <span class="tok-n">Record</span>&lt;<span class="tok-n">string</span>, <span class="tok-n">unknown</span>&gt;;
+}
+
+<span class="tok-k">interface</span> <span class="tok-f">ToolResult</span> {     <span class="tok-c">// 执行结果</span>
+  <span class="tok-n">toolCallId</span>: <span class="tok-n">string</span>;
+  <span class="tok-n">status</span>: <span class="tok-s">"success"</span> | <span class="tok-s">"error"</span>;  <span class="tok-c">// ← 错误是一等公民</span>
+  <span class="tok-n">content</span>: <span class="tok-n">unknown</span>[];
+}</code></pre>
         </div>
         <p>整个框架内部只说这套厂商中立的语言，OpenAI/Anthropic 各自的原始格式被隔离在 <code class="inline">LlmClient</code> 的翻译边界上。<strong>错误处理哲学</strong>贯穿全书：工具异常、未知工具名、LLM 报错，全部变成历史里的一条 <code class="inline">error</code> 记录——让模型看见错误并自我修正，而不是让程序崩溃。</p>
 
@@ -481,6 +516,21 @@
   overlay.addEventListener('click', closeMenu);
   document.querySelectorAll('nav.toc a').forEach(function(a){
     a.addEventListener('click', function(){ closeMenu(); });
+  });
+
+  document.querySelectorAll('.code-panel').forEach(function(panel){
+    var btns = panel.querySelectorAll('.lang-btn');
+    var fname = panel.querySelector('.fname');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var lang = btn.getAttribute('data-lang');
+        btns.forEach(function(b){ b.classList.toggle('active', b === btn); });
+        panel.querySelectorAll('pre[data-lang]').forEach(function(pre){
+          pre.hidden = pre.getAttribute('data-lang') !== lang;
+        });
+        if (fname) fname.textContent = fname.getAttribute('data-fname-' + lang);
+      });
+    });
   });
 })();
 </script>

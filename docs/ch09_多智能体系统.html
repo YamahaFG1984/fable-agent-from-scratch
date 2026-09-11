@@ -216,16 +216,28 @@
   }
   .code-panel .tab{
     display:flex; align-items:center; gap:8px;
-    padding:8px 14px; font-size:11.5px;
+    padding:8px 10px 8px 14px; font-size:11.5px;
     font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
     color:#9fb3c8; background:rgba(255,255,255,.04);
     border-bottom:1px solid rgba(255,255,255,.08);
   }
-  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8;}
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8; flex:none;}
+  .code-panel .tab .fname{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .code-panel .lang-toggle{ display:flex; gap:4px; margin-left:auto; flex:none; }
+  .code-panel .lang-btn{
+    background:transparent; border:1px solid rgba(255,255,255,.18);
+    color:#9fb3c8; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+    padding:3px 10px; border-radius:999px; cursor:pointer; letter-spacing:.02em;
+    line-height:1.4;
+  }
+  .code-panel .lang-btn:hover{ color:#e7ecf1; border-color:rgba(255,255,255,.36); }
+  .code-panel .lang-btn.active{ background:var(--code-accent); color:#1a2233; border-color:transparent; font-weight:600; }
+  .code-panel .lang-btn:focus-visible{ outline:2px solid var(--code-accent); outline-offset:1px; }
   .code-panel pre{
     margin:0; padding:14px 16px 16px; overflow-x:auto;
     font-size:12.8px; line-height:1.65;
   }
+  .code-panel pre[hidden]{ display:none; }
   .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
   .tok-c{ color:#8592a6; } /* comment */
   .tok-k{ color:#e8935a; } /* keyword */
@@ -444,6 +456,50 @@
 
         <h3 class="subhead"><span class="n">9.4</span>A2A：跨网络的 Agent 协作</h3>
         <p>前面的模式都要求 Agent 在同一进程里。<strong>A2A（Agent2Agent）协议</strong>把协作扩展到网络：约定 <code class="inline">/.well-known/agent.json</code> 做服务发现（返回名字、描述、能力），再用 JSON-RPC 的 <code class="inline">/tasks/send</code> 发起调用。关键设计是 <code class="inline">RemoteAgent.run()</code> 的签名和本地 Agent 完全一致——调用方感知不到对方是本地对象还是网络另一端的服务，这是"MCP 让远程工具和本地函数无差别"的思想在 Agent 层的复刻。</p>
+        <p>这是全书唯一真正需要"网络服务"的地方，两个端点就是全部协议面：<code class="inline">GET /.well-known/agent.json</code> 应答服务发现，<code class="inline">POST /tasks/send</code> 接收任务并把 Agent 的输出包成 artifact 返回。Python 侧随便挑一个轻量 Web 框架就能落地；TypeScript 侧这里选 <a href="https://hono.dev" target="_blank" rel="noopener">Hono</a>——路由写法几乎和 FastAPI 一一对应，且能零改动跑在 Node、Bun、Cloudflare Workers 等任意运行时上。</p>
+        <div class="code-panel">
+          <div class="tab">
+            <span class="dot"></span>
+            <span class="fname" data-fname-py="a2a_server.py" data-fname-ts="a2a_server.ts">a2a_server.py</span>
+            <div class="lang-toggle">
+              <button type="button" class="lang-btn active" data-lang="py">Python</button>
+              <button type="button" class="lang-btn" data-lang="ts">TypeScript</button>
+            </div>
+          </div>
+          <pre data-lang="py"><code><span class="tok-k">from</span> <span class="tok-n">fastapi</span> <span class="tok-k">import</span> <span class="tok-n">FastAPI</span>, <span class="tok-n">Request</span>
+
+<span class="tok-n">app</span> = <span class="tok-f">FastAPI</span>()
+
+<span class="tok-k">@app</span>.<span class="tok-f">get</span>(<span class="tok-s">"/.well-known/agent.json"</span>)   <span class="tok-c"># 服务发现：我是谁、我能做什么</span>
+<span class="tok-k">def</span> <span class="tok-f">agent_card</span>():
+    <span class="tok-k">return</span> {<span class="tok-s">"name"</span>: <span class="tok-n">agent</span>.<span class="tok-n">name</span>, <span class="tok-s">"description"</span>: <span class="tok-n">agent</span>.<span class="tok-n">description</span>}
+
+<span class="tok-k">@app</span>.<span class="tok-f">post</span>(<span class="tok-s">"/tasks/send"</span>)                <span class="tok-c"># JSON-RPC：接收任务，返回结果</span>
+<span class="tok-k">async</span> <span class="tok-k">def</span> <span class="tok-f">tasks_send</span>(<span class="tok-n">req</span>: <span class="tok-n">Request</span>):
+    <span class="tok-n">body</span> = <span class="tok-k">await</span> <span class="tok-n">req</span>.<span class="tok-f">json</span>()
+    <span class="tok-n">user_input</span> = <span class="tok-n">body</span>[<span class="tok-s">"params"</span>][<span class="tok-s">"message"</span>][<span class="tok-s">"parts"</span>][0][<span class="tok-s">"text"</span>]
+    <span class="tok-n">result</span> = <span class="tok-k">await</span> <span class="tok-n">agent</span>.<span class="tok-f">run</span>(<span class="tok-n">user_input</span>)
+    <span class="tok-k">return</span> {<span class="tok-s">"result"</span>: {<span class="tok-s">"artifacts"</span>: [{<span class="tok-s">"parts"</span>: [{<span class="tok-s">"type"</span>: <span class="tok-s">"text"</span>, <span class="tok-s">"text"</span>: <span class="tok-f">str</span>(<span class="tok-n">result</span>.<span class="tok-n">output</span>)}]}]}}</code></pre>
+          <pre data-lang="ts" hidden><code><span class="tok-k">import</span> { <span class="tok-n">Hono</span> } <span class="tok-k">from</span> <span class="tok-s">"hono"</span>;
+
+<span class="tok-k">const</span> <span class="tok-n">app</span> = <span class="tok-k">new</span> <span class="tok-f">Hono</span>();
+
+<span class="tok-n">app</span>.<span class="tok-f">get</span>(<span class="tok-s">"/.well-known/agent.json"</span>, (<span class="tok-n">c</span>) =&gt;      <span class="tok-c">// 服务发现：我是谁、我能做什么</span>
+  <span class="tok-n">c</span>.<span class="tok-f">json</span>({ <span class="tok-n">name</span>: <span class="tok-n">agent</span>.<span class="tok-n">name</span>, <span class="tok-n">description</span>: <span class="tok-n">agent</span>.<span class="tok-n">description</span> })
+);
+
+<span class="tok-n">app</span>.<span class="tok-f">post</span>(<span class="tok-s">"/tasks/send"</span>, <span class="tok-k">async</span> (<span class="tok-n">c</span>) =&gt; {         <span class="tok-c">// JSON-RPC：接收任务，返回结果</span>
+  <span class="tok-k">const</span> <span class="tok-n">body</span> = <span class="tok-k">await</span> <span class="tok-n">c</span>.<span class="tok-n">req</span>.<span class="tok-f">json</span>();
+  <span class="tok-k">const</span> <span class="tok-n">userInput</span> = <span class="tok-n">body</span>.<span class="tok-n">params</span>.<span class="tok-n">message</span>.<span class="tok-n">parts</span>[0].<span class="tok-n">text</span>;
+  <span class="tok-k">const</span> <span class="tok-n">result</span> = <span class="tok-k">await</span> <span class="tok-n">agent</span>.<span class="tok-f">run</span>(<span class="tok-n">userInput</span>);
+  <span class="tok-k">return</span> <span class="tok-n">c</span>.<span class="tok-f">json</span>({
+    <span class="tok-n">result</span>: { <span class="tok-n">artifacts</span>: [{ <span class="tok-n">parts</span>: [{ <span class="tok-n">type</span>: <span class="tok-s">"text"</span>, <span class="tok-n">text</span>: <span class="tok-n">String</span>(<span class="tok-n">result</span>.<span class="tok-n">output</span>) }] }] },
+  });
+});
+
+<span class="tok-k">export</span> <span class="tok-k">default</span> <span class="tok-n">app</span>;</code></pre>
+        </div>
+        <p style="margin-top:-6px;"><span class="pill good">对照书中</span> <code class="inline">scratch_agents/a2a_server.py</code> 里真实用的是 <code class="inline">AgentExecutor</code> 适配层（把 Agent 包成事件队列消费者），上面这段是把该适配层"摊平"成最直接的两个 HTTP 端点，方便对照协议本身；<code class="inline">remote.py</code> 里的 <code class="inline">RemoteAgent</code> 客户端就是照着这两个端点用 <code class="inline">fetch</code>/<code class="inline">httpx</code> 发请求的那一侧。</p>
 
         <div class="callout takeaway">
           <div class="head">本章要带走的几句话</div>
@@ -480,6 +536,21 @@
   overlay.addEventListener('click', closeMenu);
   document.querySelectorAll('nav.toc a').forEach(function(a){
     a.addEventListener('click', function(){ closeMenu(); });
+  });
+
+  document.querySelectorAll('.code-panel').forEach(function(panel){
+    var btns = panel.querySelectorAll('.lang-btn');
+    var fname = panel.querySelector('.fname');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var lang = btn.getAttribute('data-lang');
+        btns.forEach(function(b){ b.classList.toggle('active', b === btn); });
+        panel.querySelectorAll('pre[data-lang]').forEach(function(pre){
+          pre.hidden = pre.getAttribute('data-lang') !== lang;
+        });
+        if (fname) fname.textContent = fname.getAttribute('data-fname-' + lang);
+      });
+    });
   });
 })();
 </script>
