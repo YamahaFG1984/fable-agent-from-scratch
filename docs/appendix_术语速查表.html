@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>术语速查表 — 从零构建 AI Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1ef;
+    --surface:#ffffff;
+    --surface-2:#e6e9e5;
+    --ink:#1a2233;
+    --ink-dim:#4b5566;
+    --line:#d5d9d2;
+    --accent:#b5551f;
+    --accent-ink:#7a3a12;
+    --accent-soft:#f3e3d6;
+    --accent2:#276b64;
+    --accent2-soft:#dcece9;
+    --code-bg:#1a2233;
+    --code-ink:#e7ecef;
+    --code-accent:#e8935a;
+    --good:#2f7a4f;
+    --good-soft:#dcefe1;
+    --warn:#a5730b;
+    --warn-soft:#f6ecd6;
+    --bad:#a5341f;
+    --bad-soft:#f6ddd6;
+    --shadow: 0 1px 2px rgba(20,26,20,.06), 0 8px 24px -12px rgba(20,26,20,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171e28;
+      --surface-2:#1d2530;
+      --ink:#e7ecf1;
+      --ink-dim:#a7b1c0;
+      --line:#2a323d;
+      --accent:#e8935a;
+      --accent-ink:#f4b384;
+      --accent-soft:#3a2a1e;
+      --accent2:#5fc1b6;
+      --accent2-soft:#173330;
+      --code-bg:#0c1016;
+      --code-ink:#e7ecf1;
+      --code-accent:#e8935a;
+      --good:#5fd08a;
+      --good-soft:#123423;
+      --warn:#e0b34f;
+      --warn-soft:#3a2e12;
+      --bad:#e88a76;
+      --bad-soft:#3a1d16;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171e28;
+    --surface-2:#1d2530;
+    --ink:#e7ecf1;
+    --ink-dim:#a7b1c0;
+    --line:#2a323d;
+    --accent:#e8935a;
+    --accent-ink:#f4b384;
+    --accent-soft:#3a2a1e;
+    --accent2:#5fc1b6;
+    --accent2-soft:#173330;
+    --code-bg:#0c1016;
+    --code-ink:#e7ecf1;
+    --code-accent:#e8935a;
+    --good:#5fd08a;
+    --good-soft:#123423;
+    --warn:#e0b34f;
+    --warn-soft:#3a2e12;
+    --bad:#e88a76;
+    --bad-soft:#3a1d16;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", "Noto Sans SC", system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.7;
+  }
+  h1,h2,h3,h4{
+    font-family:"Source Serif 4","Noto Serif SC",Georgia,serif;
+    color:var(--ink);
+    text-wrap:balance;
+    margin:0;
+  }
+  code, pre, .mono, .eyebrow, .tag, .kbd{
+    font-family:"IBM Plex Mono","Noto Sans SC",monospace;
+  }
+  a{color:var(--accent-ink);}
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 272px minmax(0,1fr);
+    min-height:100vh;
+  }
+  .sidebar{
+    position:sticky; top:0; align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+    background:var(--surface);
+    padding:22px 18px 40px;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:4px;
+    padding-bottom:16px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .kicker{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+  .brand h1{ font-size:21px; line-height:1.25; }
+  .brand .sub{ font-size:12.5px; color:var(--ink-dim); }
+
+  nav.toc{ display:flex; flex-direction:column; gap:2px; }
+  nav.toc a{
+    display:flex; align-items:baseline; gap:9px;
+    padding:7px 9px; border-radius:7px;
+    text-decoration:none; color:var(--ink-dim);
+    font-size:13.5px;
+    border-left:2px solid transparent;
+  }
+  nav.toc a .num{
+    font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--ink-dim); min-width:20px;
+  }
+  nav.toc a:hover{ background:var(--surface-2); color:var(--ink); }
+  nav.toc a.active{
+    background:var(--accent-soft); color:var(--accent-ink);
+    border-left-color:var(--accent); font-weight:600;
+  }
+  nav.toc .group-label{
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-dim); opacity:.75;
+    margin:14px 9px 4px; font-weight:600;
+  }
+  nav.toc .group-label:first-child{ margin-top:2px; }
+
+  .menu-btn{
+    display:none; position:fixed; z-index:40; top:14px; left:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    width:40px; height:40px; align-items:center; justify-content:center;
+    box-shadow:var(--shadow); color:var(--ink);
+  }
+
+  main{ min-width:0; }
+  .content{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 28px 120px;
+  }
+
+  /* ---------- hero / cover ---------- */
+  .hero{
+    padding-bottom:38px; margin-bottom:44px;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .kicker{
+    font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .hero h1{ font-size:40px; line-height:1.15; margin-bottom:14px; }
+  .hero .dek{ font-size:17px; color:var(--ink-dim); max-width:60ch; }
+  .hero .meta{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin-top:22px; font-size:13px; color:var(--ink-dim);
+  }
+  .hero .meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- chapter chrome ---------- */
+  section.chapter{
+    padding-top:64px; margin-top:-8px;
+    scroll-margin-top:20px;
+  }
+  section.chapter:first-of-type{ padding-top:0; }
+  .ch-eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); font-weight:600; margin-bottom:10px;
+  }
+  .ch-eyebrow .line{ height:1px; flex:1; background:var(--line); }
+  section.chapter h2{ font-size:29px; line-height:1.25; margin-bottom:8px; }
+  section.chapter .dek{ color:var(--ink-dim); font-size:15.5px; max-width:64ch; margin-bottom:28px; }
+
+  h3.subhead{
+    font-size:18px; margin:34px 0 12px;
+    padding-top:4px;
+  }
+  h3.subhead .n{ color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:14px; margin-right:8px; }
+
+  p{ margin:0 0 14px; max-width:66ch; }
+  ul.plain, ol.plain{ margin:0 0 16px; padding-left:1.3em; max-width:64ch; }
+  ul.plain li, ol.plain li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+  .accent-word{ color:var(--accent-ink); font-weight:600; }
+
+  /* ---------- code panel ---------- */
+  .code-panel{
+    background:var(--code-bg); color:var(--code-ink);
+    border-radius:11px; overflow:hidden;
+    margin:16px 0 22px; box-shadow:var(--shadow);
+  }
+  .code-panel .tab{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 10px 8px 14px; font-size:11.5px;
+    font-family:"IBM Plex Mono",monospace; letter-spacing:.03em;
+    color:#9fb3c8; background:rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .code-panel .tab .dot{ width:8px;height:8px;border-radius:50%; background:var(--code-accent); opacity:.8; flex:none;}
+  .code-panel .tab .fname{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .code-panel .lang-toggle{ display:flex; gap:4px; margin-left:auto; flex:none; }
+  .code-panel .lang-btn{
+    background:transparent; border:1px solid rgba(255,255,255,.18);
+    color:#9fb3c8; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+    padding:3px 10px; border-radius:999px; cursor:pointer; letter-spacing:.02em;
+    line-height:1.4;
+  }
+  .code-panel .lang-btn:hover{ color:#e7ecf1; border-color:rgba(255,255,255,.36); }
+  .code-panel .lang-btn.active{ background:var(--code-accent); color:#1a2233; border-color:transparent; font-weight:600; }
+  .code-panel .lang-btn:focus-visible{ outline:2px solid var(--code-accent); outline-offset:1px; }
+  .code-panel pre{
+    margin:0; padding:14px 16px 16px; overflow-x:auto;
+    font-size:12.8px; line-height:1.65;
+  }
+  .code-panel pre[hidden]{ display:none; }
+  .code-panel code{ font-family:"IBM Plex Mono",monospace; white-space:pre; }
+  .tok-c{ color:#8592a6; } /* comment */
+  .tok-k{ color:#e8935a; } /* keyword */
+  .tok-s{ color:#8fc7a8; } /* string */
+  .tok-f{ color:#7fb5e8; } /* function/name */
+  .tok-n{ color:#e7ecf1; }
+
+  code.inline{
+    background:var(--surface-2); border:1px solid var(--line);
+    padding:1.5px 6px; border-radius:5px; font-size:.87em;
+  }
+
+  /* ---------- figures / diagrams ---------- */
+  figure.diagram{
+    margin:24px 0 26px; padding:18px 18px 14px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:13px; box-shadow:var(--shadow);
+  }
+  figure.diagram svg{ display:block; width:100%; height:auto; overflow:visible; }
+  figure.diagram figcaption{
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+  figure.diagram figcaption b{ color:var(--ink); }
+  .svg-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; fill:currentColor; }
+  .svg-title{ font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; font-weight:600; fill:currentColor; }
+  .svg-dim{ opacity:.62; }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-radius:12px; padding:16px 18px; margin:20px 0;
+    border:1px solid var(--line); background:var(--surface);
+  }
+  .callout.takeaway{
+    background:var(--accent-soft); border-color:transparent;
+  }
+  .callout.takeaway .head{
+    display:flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent-ink); font-weight:700; margin-bottom:10px;
+  }
+  .callout.takeaway ol{ margin:0; padding-left:1.2em; }
+  .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
+  .callout.note{ background:var(--accent2-soft); }
+  .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+  .callout.try{ background:var(--surface); border:1.5px dashed var(--accent2); }
+  .callout.try .head{ display:flex; align-items:center; gap:8px; color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px; }
+  .callout.try .nb-path{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--accent2-soft); color:var(--accent2); padding:2px 8px; border-radius:6px; }
+  .callout.try p{ margin:0; }
+  .callout.try p + p{ margin-top:8px; }
+
+  .pairgrid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin:18px 0;
+  }
+  .pairgrid .card{
+    border:1px solid var(--line); border-radius:11px; padding:13px 15px;
+    background:var(--surface);
+  }
+  .pairgrid .card h4{ font-size:13.5px; margin-bottom:6px; font-family:"IBM Plex Sans"; }
+  .pairgrid .card p{ font-size:13px; color:var(--ink-dim); margin:0; }
+  @media (max-width:640px){ .pairgrid{ grid-template-columns:1fr; } }
+
+  table.reftable{
+    width:100%; border-collapse:collapse; margin:16px 0 22px;
+    font-size:13.5px;
+  }
+  table.reftable th{
+    text-align:left; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim);
+    padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  table.reftable td{
+    padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top;
+  }
+  table.reftable tr:last-child td{ border-bottom:none; }
+  table.reftable code{ font-size:12px; }
+
+  /* ---------- glossary ---------- */
+  .glossary-grid{ display:flex; flex-direction:column; margin:18px 0 26px; }
+  .glossary-item{ padding:15px 0; border-bottom:1px solid var(--line); }
+  .glossary-item:first-child{ padding-top:0; }
+  .glossary-item:last-child{ border-bottom:none; }
+  .glossary-term{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .glossary-term .word{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15px; color:var(--accent-ink); }
+  .glossary-term .where{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-dim);
+    background:var(--surface-2); padding:2px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .glossary-item p{ margin:0; color:var(--ink-dim); font-size:14px; max-width:62ch; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:2.5px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+    font-family:"IBM Plex Mono",monospace; white-space:nowrap;
+  }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.bad{ background:var(--bad-soft); color:var(--bad); }
+  .pill::before{ content:"●"; font-size:8px; }
+
+  .chapfoot{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:46px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  footer.end{
+    margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim);
+  }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:78vw; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease;
+      z-index:50; box-shadow:var(--shadow);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .menu-btn{ display:flex; }
+    .content{ padding-top:76px; }
+    .overlay{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:45;
+    }
+    .overlay.show{ display:block; }
+    .pairgrid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="menu-btn" id="menuBtn" role="button" aria-label="打开目录" tabindex="0">
+  <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="菜单"><line x1="1" y1="4" x2="17" y2="4" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.6"/><line x1="1" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1.6"/></svg>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="kicker">Build an AI Agent · 学习指南</span>
+      <h1>从零构建 AI Agent</h1>
+      <span class="sub">10 章代码精读 · 图解版 · 面向初学者</span>
+    </div>
+    <nav class="toc" id="toc">
+      <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <a href="ch00b_快速开始.html"><span class="num">00+</span>快速开始</a>
+      <div class="group-label">Part 1 · 搭建第一个 Agent</div>
+      <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
+      <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
+      <a href="ch03_工具与FunctionCalling.html"><span class="num">03</span>工具调用</a>
+      <a href="ch04_构建ReAct_Agent.html"><span class="num">04</span>ReAct Agent</a>
+      <div class="group-label">Part 2 · 进阶能力</div>
+      <a href="ch05_RAG与文件工具.html"><span class="num">05</span>RAG 与文件工具</a>
+      <a href="ch06_记忆系统.html"><span class="num">06</span>记忆系统</a>
+      <a href="ch07_规划与反思.html"><span class="num">07</span>规划与反思</a>
+      <a href="ch08_代码执行.html"><span class="num">08</span>代码执行</a>
+      <a href="ch09_多智能体系统.html"><span class="num">09</span>多智能体系统</a>
+      <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
+      <div class="group-label">附录</div>
+      <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+      <a class="active" href="appendix_术语速查表.html"><span class="num">B</span>术语速查表</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="content">
+
+<section id="glossary" class="chapter">
+        <div class="ch-eyebrow"><span>附录 B</span><span class="line"></span><span>查词用，不用通读</span></div>
+        <h2>术语速查表</h2>
+        <p class="dek">这些词在不同章节第一次出现，散落在各处——忘了哪个词什么意思时，回这页查一下即可，不用从头翻。按书中出现顺序排列。</p>
+
+        <div class="glossary-grid">
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">LLM Agent</span><span class="where">第 1 章</span></div>
+            <p>把部分控制流交给 LLM 的程序：模型自己决定下一步做什么、什么时候停，而不是开发者在代码里用 <code class="inline">if</code>/<code class="inline">for</code> 写死。三要素：LLM（大脑）+ 工具（手脚）+ 循环。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">上下文工程 Context Engineering</span><span class="where">第 1 章</span></div>
+            <p>在正确的时机把正确的信息放进 LLM 的上下文窗口的学问。Agent 失败大多不是模型不够聪明，而是该给的信息没喂到。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Harness Engineering</span><span class="where">第 1 章</span></div>
+            <p>模型之外、支撑 Agent 运行的一切：记忆、工具、安全执行、多 Agent 协作。公式：Agent = Model + Harness。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">GAIA</span><span class="where">第 1、2 章</span></div>
+            <p>Meta 和 Hugging Face 发布的 Agent 评测基准，题目需要多步检索、推理、计算。全书用它作为统一的尺子，从第 2 章的裸 LLM 量到第 10 章的完整 Agent。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">工具调用 Tool / Function Calling</span><span class="where">第 3 章</span></div>
+            <p>LLM 输出一段 JSON 声明"我想调用什么、参数是什么"，由调用方的代码负责真正执行。模型自己从不执行任何东西。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">MCP Model Context Protocol</span><span class="where">第 3 章</span></div>
+            <p>把工具做成独立服务器进程的标准协议，任何 Agent 都能即插即用——相当于工具界的 USB 接口。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">ReAct</span><span class="where">第 4 章</span></div>
+            <p>Reasoning + Acting：思考→行动→观察的循环。现代实现直接用原生 tool calling，不再靠正则解析文本。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">ExecutionContext</span><span class="where">第 4 章</span></div>
+            <p>Agent 的中央状态存储，<code class="inline">events</code> 列表是唯一事实来源。每次调 LLM 前都从它现做一个请求视图，存储和呈现分离。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">结构化输出 Structured Output</span><span class="where">第 2、4 章</span></div>
+            <p>用 Pydantic / zod 的 schema 约束模型输出，把 LLM 从"聊天机器人"变成程序能可靠解析的"软件组件"。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">RAG 检索增强生成</span><span class="where">第 5 章</span></div>
+            <p>Retrieval-Augmented Generation：embedding → chunking → 向量检索，把最相关的一小撮文本放进上下文。本书里第一用途是压缩工具输出，知识库问答是次要场景。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">回调 Callback（before / after）</span><span class="where">第 5 章</span></div>
+            <p>Agent 的中间件机制：工具执行前可拦截（如人工审批），执行后可改写（如压缩结果），<code class="inline">None</code> 代表不干预。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Compaction / Summarization</span><span class="where">第 6 章</span></div>
+            <p>两种上下文压缩策略：Compaction 把工具结果换成"占位引用"（零成本，可重放）；Summarization 用 LLM 总结旧对话（更贵，更智能）。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Session</span><span class="where">第 6 章</span></div>
+            <p>跨多次 <code class="inline">run()</code> 持久化的对话状态，让 Agent 在进程重启后仍能从上次的地方继续。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">HITL Human-in-the-Loop</span><span class="where">第 5、6 章</span></div>
+            <p>危险操作需要人工确认。第 6 章把它从同步阻塞改成"暂停（<code class="inline">pending_confirmation</code>）→ 持久化 → 恢复"的异步模式。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">长期记忆 Long-term Memory</span><span class="where">第 6 章</span></div>
+            <p>存进向量库、跨会话可检索的结构化经验（而非原始日志），让 Agent 能从以前解过的相似任务里学习。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Planning / Reflection</span><span class="where">第 7 章</span></div>
+            <p>两个几乎"空壳"的工具：<code class="inline">create_tasks</code> 强迫模型先列计划再行动；<code class="inline">reflection</code> 强迫模型在关键节点写下分析——价值全在于"调用的行为"本身。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">CodeAct / 代码执行 Agent</span><span class="where">第 8 章</span></div>
+            <p>让 LLM 直接写代码并执行，而不是只能调预定义工具——行动空间从"N 个按钮"变成图灵完备的语言。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">沙箱 Sandbox（E2B）</span><span class="where">第 8 章</span></div>
+            <p>隔离、用完即弃的云端执行环境，本质是一个远程 Jupyter kernel。LLM 生成的代码必须在这里跑，绝不能直接在主机上执行。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Agent Skills / 渐进式披露</span><span class="where">第 8 章</span></div>
+            <p>把"怎么用某个库"写成 <code class="inline">SKILL.md</code> 文档，系统提示词只放名字+一行描述，模型按需读取完整文档——扩展能力从写代码变成写文档。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Workflow（Sequential / Parallel / Loop）</span><span class="where">第 9 章</span></div>
+            <p>由代码写死执行顺序、多个 Agent 共享同一个 context 的编排模式；三种 Workflow 都继承 Agent，以获得可嵌套的组合律。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Agent as Tool</span><span class="where">第 9 章</span></div>
+            <p>把整个 Agent 包装成一个工具：子 Agent 在全新隔离的 context 里运行，调用方只拿回最终结论，中间过程不回流。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">Transfer</span><span class="where">第 9 章</span></div>
+            <p>把整个 context（含全部历史）连同控制权一次性移交给另一个 Agent，不再返回——适合客服路由这类"分诊后专家全程接管"的场景。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">A2A Agent2Agent</span><span class="where">第 9 章</span></div>
+            <p>把协作扩展到跨网络的协议：<code class="inline">/.well-known/agent.json</code> 做服务发现，JSON-RPC 的 <code class="inline">/tasks/send</code> 发起调用。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">LLM-as-Judge</span><span class="where">第 10 章</span></div>
+            <p>用一个 LLM 给另一个 LLM 的输出打分，常配合"强制说理"的裁判提示词，从相关性、引用可靠性、需求合规性等正交维度评估开放式输出。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">OPR Overall Pass Rate</span><span class="where">第 10 章</span></div>
+            <p>通过的评估数 / 总评估数，汇总成一个数字用于版本对比和 CI/CD 发版门禁；按维度分解则用于定位具体哪里出了问题。</p>
+          </div>
+          <div class="glossary-item">
+            <div class="glossary-term"><span class="word">OpenTelemetry</span><span class="where">第 10 章</span></div>
+            <p>生成、采集、导出可观测性数据（指标 metrics、追踪 traces、日志 logs）的开放标准，是把"Agent 线上到底发生了什么"变成可查询数据的常见选择。</p>
+          </div>
+        </div>
+      </section>
+
+<div class="chapfoot"><a href="appendix_依赖库版本体检.html">&larr; 依赖库版本体检</a><span>全书完</span></div>
+
+      <footer class="end">
+        本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var sidebar = document.getElementById('sidebar');
+  var menuBtn = document.getElementById('menuBtn');
+  var overlay = document.getElementById('overlay');
+  function closeMenu(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  function toggleMenu(){ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); }
+  menuBtn.addEventListener('click', toggleMenu);
+  menuBtn.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleMenu(); }});
+  overlay.addEventListener('click', closeMenu);
+  document.querySelectorAll('nav.toc a').forEach(function(a){
+    a.addEventListener('click', function(){ closeMenu(); });
+  });
+
+  document.querySelectorAll('.code-panel').forEach(function(panel){
+    var btns = panel.querySelectorAll('.lang-btn');
+    var fname = panel.querySelector('.fname');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var lang = btn.getAttribute('data-lang');
+        btns.forEach(function(b){ b.classList.toggle('active', b === btn); });
+        panel.querySelectorAll('pre[data-lang]').forEach(function(pre){
+          pre.hidden = pre.getAttribute('data-lang') !== lang;
+        });
+        if (fname) fname.textContent = fname.getAttribute('data-fname-' + lang);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

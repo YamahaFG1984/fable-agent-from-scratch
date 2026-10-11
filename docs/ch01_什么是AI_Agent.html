@@ -284,6 +284,11 @@
   .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
   .callout.note{ background:var(--accent2-soft); }
   .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+  .callout.try{ background:var(--surface); border:1.5px dashed var(--accent2); }
+  .callout.try .head{ display:flex; align-items:center; gap:8px; color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px; }
+  .callout.try .nb-path{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--accent2-soft); color:var(--accent2); padding:2px 8px; border-radius:6px; }
+  .callout.try p{ margin:0; }
+  .callout.try p + p{ margin-top:8px; }
 
   .pairgrid{
     display:grid; grid-template-columns:1fr 1fr; gap:14px;
@@ -311,6 +316,19 @@
   }
   table.reftable tr:last-child td{ border-bottom:none; }
   table.reftable code{ font-size:12px; }
+
+  /* ---------- glossary ---------- */
+  .glossary-grid{ display:flex; flex-direction:column; margin:18px 0 26px; }
+  .glossary-item{ padding:15px 0; border-bottom:1px solid var(--line); }
+  .glossary-item:first-child{ padding-top:0; }
+  .glossary-item:last-child{ border-bottom:none; }
+  .glossary-term{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .glossary-term .word{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15px; color:var(--accent-ink); }
+  .glossary-term .where{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-dim);
+    background:var(--surface-2); padding:2px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .glossary-item p{ margin:0; color:var(--ink-dim); font-size:14px; max-width:62ch; }
 
   .pill{
     display:inline-flex; align-items:center; gap:5px;
@@ -366,6 +384,7 @@
     </div>
     <nav class="toc" id="toc">
       <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <a href="ch00b_快速开始.html"><span class="num">00+</span>快速开始</a>
       <div class="group-label">Part 1 · 搭建第一个 Agent</div>
       <a class="active" href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
       <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
@@ -380,6 +399,7 @@
       <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
       <div class="group-label">附录</div>
       <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+      <a href="appendix_术语速查表.html"><span class="num">B</span>术语速查表</a>
     </nav>
   </aside>
 
@@ -497,6 +517,11 @@
         </table>
         <p>再往外一层是<strong>harness engineering</strong>——当 Agent 真正跑在用户机器上、被真实产品使用时，模型之外的一切（记忆、安全执行、多 Agent 协作、用户的文件系统）都变得同等重要。书里的公式很直白：<span class="accent-word">Agent = Model + Harness</span>。这本书接下来的每一章，都是在往这个 Harness 里添砖加瓦。</p>
 
+        <div class="callout try">
+          <div class="head">动手试一试</div>
+          <p><span class="nb-path">notebooks/ch02</span> 本章还没有代码，但可以先预判：打开下一章的 GAIA baseline 测试前，自己挑 3 道题猜一猜——裸 LLM 能答对吗？哪类题目一看就需要查资料或算数？跑完对比自己的判断和实际结果，比直接看答案记得更牢。</p>
+        </div>
+
         <div class="callout takeaway">
           <div class="head">本章要带走的几句话</div>
           <ol>
@@ -510,7 +535,7 @@
         
       </section>
 
-<div class="chapfoot"><a href="ch00_导读与全书地图.html">&larr; 导读与全书地图</a><a href="ch02_LLM_API基础.html">LLM API 基础 &rarr;</a></div>
+<div class="chapfoot"><a href="ch00b_快速开始.html">&larr; 快速开始</a><a href="ch02_LLM_API基础.html">LLM API 基础 &rarr;</a></div>
 
       <footer class="end">
         本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>

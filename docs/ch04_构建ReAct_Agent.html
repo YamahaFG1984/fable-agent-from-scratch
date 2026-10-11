@@ -284,6 +284,11 @@
   .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
   .callout.note{ background:var(--accent2-soft); }
   .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+  .callout.try{ background:var(--surface); border:1.5px dashed var(--accent2); }
+  .callout.try .head{ display:flex; align-items:center; gap:8px; color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px; }
+  .callout.try .nb-path{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--accent2-soft); color:var(--accent2); padding:2px 8px; border-radius:6px; }
+  .callout.try p{ margin:0; }
+  .callout.try p + p{ margin-top:8px; }
 
   .pairgrid{
     display:grid; grid-template-columns:1fr 1fr; gap:14px;
@@ -311,6 +316,19 @@
   }
   table.reftable tr:last-child td{ border-bottom:none; }
   table.reftable code{ font-size:12px; }
+
+  /* ---------- glossary ---------- */
+  .glossary-grid{ display:flex; flex-direction:column; margin:18px 0 26px; }
+  .glossary-item{ padding:15px 0; border-bottom:1px solid var(--line); }
+  .glossary-item:first-child{ padding-top:0; }
+  .glossary-item:last-child{ border-bottom:none; }
+  .glossary-term{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .glossary-term .word{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15px; color:var(--accent-ink); }
+  .glossary-term .where{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-dim);
+    background:var(--surface-2); padding:2px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .glossary-item p{ margin:0; color:var(--ink-dim); font-size:14px; max-width:62ch; }
 
   .pill{
     display:inline-flex; align-items:center; gap:5px;
@@ -366,6 +384,7 @@
     </div>
     <nav class="toc" id="toc">
       <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <a href="ch00b_快速开始.html"><span class="num">00+</span>快速开始</a>
       <div class="group-label">Part 1 · 搭建第一个 Agent</div>
       <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
       <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
@@ -380,6 +399,7 @@
       <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
       <div class="group-label">附录</div>
       <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+      <a href="appendix_术语速查表.html"><span class="num">B</span>术语速查表</a>
     </nav>
   </aside>
 
@@ -480,6 +500,12 @@
 
         <h3 class="subhead"><span class="n">4.4</span>结构化输出：把"最终答案"也做成工具</h3>
         <p>需求：让 Agent 返回 Pydantic 对象而不是散文，但中间步骤又要能自由调用工具。<strong>本章最聪明的技巧</strong>：自动注入一个 <code class="inline">final_answer</code> 工具，配合 <code class="inline">tool_choice="required"</code> 堵死自由文本出口——模型唯一的结束方式就是调用它。工具调用机制被复用成了输出约束机制，schema 校验和参数解析全都白送。</p>
+
+        <div class="callout try">
+          <div class="head">动手试一试</div>
+          <p><span class="nb-path">notebooks/ch04</span> 把 <code class="inline">Agent</code> 的 <code class="inline">max_steps</code> 调到 2，问一个明显需要 3 轮以上工具调用才能回答的问题，观察 <code class="inline">AgentResult.output</code> 变成了什么、<code class="inline">context.events</code> 停在了哪一步。</p>
+          <p>调试时可以用 <code class="inline">scratch_agents/utils.py</code> 里的 <code class="inline">display_trace(result.context)</code> 逐事件回放 Agent 的每一步思考和调用——因为 <code class="inline">events</code> 记录了一切，可观测性是"存储与呈现分离"这个架构决策白送的礼物。</p>
+        </div>
 
         <div class="callout takeaway">
           <div class="head">本章要带走的几句话</div>

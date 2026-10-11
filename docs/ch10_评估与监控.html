@@ -284,6 +284,11 @@
   .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
   .callout.note{ background:var(--accent2-soft); }
   .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+  .callout.try{ background:var(--surface); border:1.5px dashed var(--accent2); }
+  .callout.try .head{ display:flex; align-items:center; gap:8px; color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px; }
+  .callout.try .nb-path{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--accent2-soft); color:var(--accent2); padding:2px 8px; border-radius:6px; }
+  .callout.try p{ margin:0; }
+  .callout.try p + p{ margin-top:8px; }
 
   .pairgrid{
     display:grid; grid-template-columns:1fr 1fr; gap:14px;
@@ -311,6 +316,19 @@
   }
   table.reftable tr:last-child td{ border-bottom:none; }
   table.reftable code{ font-size:12px; }
+
+  /* ---------- glossary ---------- */
+  .glossary-grid{ display:flex; flex-direction:column; margin:18px 0 26px; }
+  .glossary-item{ padding:15px 0; border-bottom:1px solid var(--line); }
+  .glossary-item:first-child{ padding-top:0; }
+  .glossary-item:last-child{ border-bottom:none; }
+  .glossary-term{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .glossary-term .word{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15px; color:var(--accent-ink); }
+  .glossary-term .where{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-dim);
+    background:var(--surface-2); padding:2px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .glossary-item p{ margin:0; color:var(--ink-dim); font-size:14px; max-width:62ch; }
 
   .pill{
     display:inline-flex; align-items:center; gap:5px;
@@ -366,6 +384,7 @@
     </div>
     <nav class="toc" id="toc">
       <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <a href="ch00b_快速开始.html"><span class="num">00+</span>快速开始</a>
       <div class="group-label">Part 1 · 搭建第一个 Agent</div>
       <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
       <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
@@ -380,6 +399,7 @@
       <a class="active" href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
       <div class="group-label">附录</div>
       <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+      <a href="appendix_术语速查表.html"><span class="num">B</span>术语速查表</a>
     </nav>
   </aside>
 
@@ -441,6 +461,14 @@
           <tr><td>第 10 章</td><td>终局评测</td><td>同一把尺子量出每次进化的增益</td></tr>
         </table>
         <p><strong>同一个基准贯穿全书不是偷懒，是方法论</strong>：固定度量，才能把每一次分数变化归因到具体的某个组件。而"events 记录一切"的架构决策，最终在可观测性上收获完整回报——每一次生产运行都自带可回放的审计日志。</p>
+
+        <h3 class="subhead"><span class="n">10.4</span>线上监控：评估之外还要观测</h3>
+        <p>评估（evaluation）回答"这个版本好不好"，<strong>观测（observability）</strong>回答"线上这一刻到底发生了什么"——两者互补，缺一不可。书中把可观测性拆成三大支柱：<strong>指标 metrics</strong>（延迟、成功率、token 用量等可聚合的数字）、<strong>追踪 traces</strong>（一次 <code class="inline">run()</code> 里每一步调用的完整链路）、<strong>日志 logs</strong>（具体事件的详细记录）。生成、采集、导出这三类数据的开放标准是 <strong>OpenTelemetry</strong>——第 4 章的 <code class="inline">display_trace</code>、<code class="inline">usage_metadata</code>（token 统计）、<code class="inline">AgentResult.context</code>（完整事件历史）都是为接入这套体系准备的原材料，生产环境里通常会把它们对接到 OpenTelemetry 的 exporter，统一进公司已有的监控平台（如 Grafana、Datadog）。</p>
+
+        <div class="callout try">
+          <div class="head">动手试一试</div>
+          <p><span class="nb-path">notebooks/ch10</span> 把 <code class="inline">EVALUATION_SYSTEM_PROMPT</code> 的评分维度从 3 个改成 4 个（比如加一条"语气是否得体"），重新跑一遍 LLM-as-judge，想一想 OPR 的计算和按维度分解的统计要怎么跟着调整。</p>
+        </div>
 
         <div class="callout takeaway">
           <div class="head">本章要带走的几句话</div>

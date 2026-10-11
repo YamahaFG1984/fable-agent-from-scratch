@@ -284,6 +284,11 @@
   .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
   .callout.note{ background:var(--accent2-soft); }
   .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+  .callout.try{ background:var(--surface); border:1.5px dashed var(--accent2); }
+  .callout.try .head{ display:flex; align-items:center; gap:8px; color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px; }
+  .callout.try .nb-path{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--accent2-soft); color:var(--accent2); padding:2px 8px; border-radius:6px; }
+  .callout.try p{ margin:0; }
+  .callout.try p + p{ margin-top:8px; }
 
   .pairgrid{
     display:grid; grid-template-columns:1fr 1fr; gap:14px;
@@ -311,6 +316,19 @@
   }
   table.reftable tr:last-child td{ border-bottom:none; }
   table.reftable code{ font-size:12px; }
+
+  /* ---------- glossary ---------- */
+  .glossary-grid{ display:flex; flex-direction:column; margin:18px 0 26px; }
+  .glossary-item{ padding:15px 0; border-bottom:1px solid var(--line); }
+  .glossary-item:first-child{ padding-top:0; }
+  .glossary-item:last-child{ border-bottom:none; }
+  .glossary-term{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .glossary-term .word{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15px; color:var(--accent-ink); }
+  .glossary-term .where{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-dim);
+    background:var(--surface-2); padding:2px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .glossary-item p{ margin:0; color:var(--ink-dim); font-size:14px; max-width:62ch; }
 
   .pill{
     display:inline-flex; align-items:center; gap:5px;
@@ -366,6 +384,7 @@
     </div>
     <nav class="toc" id="toc">
       <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <a href="ch00b_快速开始.html"><span class="num">00+</span>快速开始</a>
       <div class="group-label">Part 1 · 搭建第一个 Agent</div>
       <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
       <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
@@ -380,6 +399,7 @@
       <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
       <div class="group-label">附录</div>
       <a href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+      <a href="appendix_术语速查表.html"><span class="num">B</span>术语速查表</a>
     </nav>
   </aside>
 
@@ -440,6 +460,11 @@
 
         <h3 class="subhead"><span class="n">3.4</span>MCP：工具的标准化协议</h3>
         <p><strong>MCP（Model Context Protocol）</strong>把工具做成独立的"服务器"进程，任何 Agent 即插即用——相当于工具界的 USB 接口。客户端走三步协议：<code class="inline">initialize</code>（握手）→ <code class="inline">list_tools</code>（发现）→ <code class="inline">call_tool</code>（调用）；服务端用 <code class="inline">FastMCP</code> 一个装饰器就能把普通函数注册成 MCP 工具，其自动生成定义的原理和第 3 节的内省完全一致。</p>
+
+        <div class="callout try">
+          <div class="head">动手试一试</div>
+          <p><span class="nb-path">notebooks/ch03</span> 仿照 <code class="inline">search_web</code> 自己写一个新工具（比如返回假数据的 <code class="inline">get_weather(city)</code>），用 <code class="inline">function_to_tool_definition</code> 生成它的定义，塞进 <code class="inline">simple_agent_loop</code> 里，测试模型会不会在合适的时机主动调用它。</p>
+        </div>
 
         <div class="callout takeaway">
           <div class="head">本章要带走的几句话</div>

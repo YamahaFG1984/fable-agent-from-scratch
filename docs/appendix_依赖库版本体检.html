@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>附录 · 依赖库版本体检 — 从零构建 AI Agent</title>
+<title>依赖库版本体检 — 从零构建 AI Agent</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root{
@@ -284,6 +284,11 @@
   .callout.takeaway li{ margin-bottom:6px; color:var(--ink); }
   .callout.note{ background:var(--accent2-soft); }
   .callout.note .head{ color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px;}
+  .callout.try{ background:var(--surface); border:1.5px dashed var(--accent2); }
+  .callout.try .head{ display:flex; align-items:center; gap:8px; color:var(--accent2); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; font-family:"IBM Plex Mono",monospace; margin-bottom:8px; }
+  .callout.try .nb-path{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--accent2-soft); color:var(--accent2); padding:2px 8px; border-radius:6px; }
+  .callout.try p{ margin:0; }
+  .callout.try p + p{ margin-top:8px; }
 
   .pairgrid{
     display:grid; grid-template-columns:1fr 1fr; gap:14px;
@@ -311,6 +316,19 @@
   }
   table.reftable tr:last-child td{ border-bottom:none; }
   table.reftable code{ font-size:12px; }
+
+  /* ---------- glossary ---------- */
+  .glossary-grid{ display:flex; flex-direction:column; margin:18px 0 26px; }
+  .glossary-item{ padding:15px 0; border-bottom:1px solid var(--line); }
+  .glossary-item:first-child{ padding-top:0; }
+  .glossary-item:last-child{ border-bottom:none; }
+  .glossary-term{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .glossary-term .word{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15px; color:var(--accent-ink); }
+  .glossary-term .where{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-dim);
+    background:var(--surface-2); padding:2px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .glossary-item p{ margin:0; color:var(--ink-dim); font-size:14px; max-width:62ch; }
 
   .pill{
     display:inline-flex; align-items:center; gap:5px;
@@ -366,6 +384,7 @@
     </div>
     <nav class="toc" id="toc">
       <a href="ch00_导读与全书地图.html"><span class="num">00</span>导读与全书地图</a>
+      <a href="ch00b_快速开始.html"><span class="num">00+</span>快速开始</a>
       <div class="group-label">Part 1 · 搭建第一个 Agent</div>
       <a href="ch01_什么是AI_Agent.html"><span class="num">01</span>什么是 AI Agent</a>
       <a href="ch02_LLM_API基础.html"><span class="num">02</span>LLM API 基础</a>
@@ -380,6 +399,7 @@
       <a href="ch10_评估与监控.html"><span class="num">10</span>评估与监控</a>
       <div class="group-label">附录</div>
       <a class="active" href="appendix_依赖库版本体检.html"><span class="num">A</span>依赖库版本体检</a>
+      <a href="appendix_术语速查表.html"><span class="num">B</span>术语速查表</a>
     </nav>
   </aside>
 
@@ -427,7 +447,7 @@
         
       </section>
 
-<div class="chapfoot"><a href="ch10_评估与监控.html">&larr; 评估与监控</a><span>全书完</span></div>
+<div class="chapfoot"><a href="ch10_评估与监控.html">&larr; 评估与监控</a><a href="appendix_术语速查表.html">术语速查表 &rarr;</a></div>
 
       <footer class="end">
         本指南基于仓库 <code class="inline">ai-agent-from-scratch</code> 的源码（<code class="inline">scratch_agents/</code>、<code class="inline">notebooks/ch02–ch10</code>、<code class="inline">teaching/</code>）与随书 PDF《Build an AI Agent (From Scratch)》（Jungjun Hur, Younghee Song, Manning）整理而成，供个人学习使用。 &middot; <a href="ch00_导读与全书地图.html">返回全书地图</a>
